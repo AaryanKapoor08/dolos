@@ -1,0 +1,50 @@
+# --- Project planning / context (kept local, NEVER committed) ---
+docs/
+claude/
+learning/
+*.odt
+listings*
+
+# --- Java / Gradle ---
+.gradle/
+build/
+!gradle/wrapper/gradle-wrapper.jar
+out/
+bin/
+*.class
+*.jar
+*.war
+target/
+
+# --- Spring ---
+application-local.yml
+application-local.properties
+*.log
+logs/
+
+# --- IDE ---
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/
+.project
+.classpath
+.settings/
+*.code-workspace
+
+# --- OS ---
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# --- Env / secrets ---
+.env
+.env.*
+*.local
+secrets/
+
+# --- Docker / data volumes ---
+**/data/
+pgdata/
+neo4j-data/
