@@ -33,6 +33,9 @@ tasks.withType<JavaCompile>().configureEach {
     options.encoding = "UTF-8"
     // Surface problems early; treat deprecation/unchecked as visible warnings.
     options.compilerArgs.addAll(listOf("-Xlint:all", "-Xlint:-processing"))
+    // Retain method/constructor parameter names in bytecode so Jackson can bind JSON to
+    // record components by name (Kafka event contracts in dolos-events) without annotations.
+    options.compilerArgs.add("-parameters")
 }
 
 tasks.named<Test>("test") {

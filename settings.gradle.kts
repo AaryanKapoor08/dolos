@@ -33,8 +33,8 @@ rootProject.name = "dolos"
 
 // --- Modules ---
 include("libs:dolos-common")
+include("libs:dolos-events")
 include("services:transaction-service")
 // Added as they are created:
-// include("libs:dolos-events")
 // include("libs:dolos-proto")
 // include("libs:dolos-security")
