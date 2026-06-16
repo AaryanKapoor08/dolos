@@ -1,0 +1,51 @@
+# Dolos — local infrastructure baseline (Phase 0B)
+#
+# PostgreSQL on the pgvector image so the `vector` extension is available from day one
+# (no DB swap when the Phase 4 AI copilot needs embeddings). Local-dev defaults are baked
+# in below; override any of them via shell env or an (untracked) .env file in this folder.
+#
+# Usage:
+#   docker compose -f infra.yml up -d      # start in background
+#   docker compose -f infra.yml ps         # status + health
+#   docker compose -f infra.yml down       # stop (keeps the named volume / data)
+#   docker compose -f infra.yml down -v    # stop AND delete data
+# Or use the helper: ./infra.ps1 up | status | logs | psql | down | reset
+
+name: dolos-infra
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: dolos-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-dolos}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-dolos}
+      POSTGRES_DB: ${POSTGRES_DB:-dolos}
+      # Fail fast on bad auth config rather than silently allowing trust auth.
+      POSTGRES_HOST_AUTH_METHOD: scram-sha-256
+      POSTGRES_INITDB_ARGS: "--auth-host=scram-sha-256"
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - dolos-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      # pg_isready returns 0 only once the server accepts connections.
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-dolos} -d ${POSTGRES_DB:-dolos}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    networks:
+      - dolos
+
+# Shared network so later services (transaction-service, etc.) reach Postgres by the
+# DNS name `postgres`. Named `dolos` so other compose files can attach to it as external.
+networks:
+  dolos:
+    name: dolos
+    driver: bridge
+
+volumes:
+  dolos-pgdata:
+    name: dolos-pgdata
