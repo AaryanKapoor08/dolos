@@ -8,13 +8,15 @@ listings*
 # --- Java / Gradle ---
 .gradle/
 build/
-!gradle/wrapper/gradle-wrapper.jar
 out/
 bin/
 *.class
-*.jar
 *.war
 target/
+# Ignore stray jars, but KEEP the committed Gradle wrapper jar.
+# (This negation must come AFTER `*.jar` — last match wins in .gitignore.)
+*.jar
+!gradle/wrapper/gradle-wrapper.jar
 
 # --- Spring ---
 application-local.yml
