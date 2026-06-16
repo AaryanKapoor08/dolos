@@ -39,6 +39,62 @@ services:
     networks:
       - dolos
 
+  # --- Event backbone (Phase 1A) --------------------------------------------------------
+  # Redpanda: a single-binary, Kafka-API-compatible broker (lighter than Kafka+KRaft on a
+  # laptop). Two listeners: `internal` (redpanda:9092) for other containers on the dolos
+  # network, and `external` (localhost:19092) for host-run dev/tests. `dev-container` mode
+  # disables production guardrails (fsync, memory checks) — fine for local $0 infra.
+  redpanda:
+    image: redpandadata/redpanda:v24.3.1
+    container_name: dolos-redpanda
+    restart: unless-stopped
+    command:
+      - redpanda
+      - start
+      - --kafka-addr=internal://0.0.0.0:9092,external://0.0.0.0:19092
+      - --advertise-kafka-addr=internal://redpanda:9092,external://localhost:19092
+      - --pandaproxy-addr=internal://0.0.0.0:8082,external://0.0.0.0:18082
+      - --advertise-pandaproxy-addr=internal://redpanda:8082,external://localhost:18082
+      - --schema-registry-addr=internal://0.0.0.0:8081,external://0.0.0.0:18081
+      - --rpc-addr=redpanda:33145
+      - --advertise-rpc-addr=redpanda:33145
+      - --mode=dev-container
+      - --smp=1
+      - --default-log-level=info
+    ports:
+      - "${REDPANDA_KAFKA_PORT:-19092}:19092"   # Kafka API (host)
+      - "18081:18081"                           # Schema Registry (host)
+      - "18082:18082"                           # HTTP proxy (host)
+      - "19644:9644"                            # Admin API / metrics (host)
+    volumes:
+      - dolos-redpanda:/var/lib/redpanda/data
+    healthcheck:
+      test: ["CMD-SHELL", "rpk cluster health -X brokers=localhost:9092 | grep -q 'Healthy:.*true'"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 15s
+    networks:
+      - dolos
+
+  # Redpanda Console: web UI to browse topics, messages, and consumer groups. Used to
+  # *see* TransactionReceived → RiskScored → AlertRaised flow through the pipeline.
+  redpanda-console:
+    image: redpandadata/console:v2.8.2
+    container_name: dolos-redpanda-console
+    restart: unless-stopped
+    depends_on:
+      redpanda:
+        condition: service_healthy
+    environment:
+      KAFKA_BROKERS: redpanda:9092
+      KAFKA_SCHEMAREGISTRY_ENABLED: "true"
+      KAFKA_SCHEMAREGISTRY_URLS: http://redpanda:8081
+    ports:
+      - "${REDPANDA_CONSOLE_PORT:-8088}:8080"
+    networks:
+      - dolos
+
 # Shared network so later services (transaction-service, etc.) reach Postgres by the
 # DNS name `postgres`. Named `dolos` so other compose files can attach to it as external.
 networks:
@@ -49,3 +105,5 @@ networks:
 volumes:
   dolos-pgdata:
     name: dolos-pgdata
+  dolos-redpanda:
+    name: dolos-redpanda
