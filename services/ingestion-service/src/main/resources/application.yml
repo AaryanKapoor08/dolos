@@ -1,0 +1,40 @@
+spring:
+  application:
+    name: ingestion-service
+  r2dbc:
+    # App data path is reactive. Host default; container overrides via SPRING_R2DBC_* (services.yml).
+    url: r2dbc:postgresql://localhost:5432/dolos
+    username: dolos
+    password: dolos
+  flyway:
+    enabled: true
+    # Flyway migrates over JDBC (its own short-lived connection); the app itself uses R2DBC only.
+    url: jdbc:postgresql://localhost:5432/dolos
+    user: dolos
+    password: dolos
+    # Own history table so multiple services can share the `dolos` database without colliding.
+    table: flyway_schema_history_ingestion
+    locations: classpath:db/migration
+  kafka:
+    # Host default (Redpanda external listener); container overrides via SPRING_KAFKA_BOOTSTRAP_SERVERS.
+    bootstrap-servers: localhost:19092
+
+server:
+  port: 8082
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: always
+  info:
+    env:
+      enabled: true
+
+info:
+  app:
+    name: ${spring.application.name}
+    phase: "1B"

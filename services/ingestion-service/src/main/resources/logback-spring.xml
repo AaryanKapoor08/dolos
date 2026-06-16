@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Structured (JSON) logging — observability baseline, mirrors transaction-service.
+
+  LogstashEncoder emits one JSON object per log line and includes any SLF4J MDC entries.
+  A static `service` field tags the source so logs are filterable across services.
+-->
+<configuration>
+    <appender name="JSON" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder class="net.logstash.logback.encoder.LogstashEncoder">
+            <customFields>{"service":"ingestion-service"}</customFields>
+        </encoder>
+    </appender>
+
+    <root level="INFO">
+        <appender-ref ref="JSON"/>
+    </root>
+</configuration>
