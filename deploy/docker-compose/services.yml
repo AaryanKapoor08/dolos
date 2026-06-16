@@ -1,11 +1,9 @@
 # Dolos — application services (Phase 0C+).
 #
 # Brought up alongside the infra baseline; joins the same external `dolos` network so
-# services reach Postgres by its DNS name. Run together with:
+# services reach Postgres by its DNS name. Must be run together with infra.yml:
 #   docker compose -f infra.yml -f services.yml up -d
-# (the helper: ./infra.ps1 up brings up infra only; build services explicitly.)
-
-name: dolos-services
+# (No top-level `name:` here on purpose, so a combined run shares infra.yml's project.)
 
 services:
   transaction-service:
@@ -15,8 +13,16 @@ services:
     image: dolos/transaction-service:0.0.1-SNAPSHOT
     container_name: dolos-transaction-service
     restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
     ports:
       - "8081:8081"
+    environment:
+      # Reach Postgres by its compose DNS name on the shared `dolos` network.
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-dolos}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-dolos}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-dolos}
     healthcheck:
       test: ["CMD-SHELL", "curl -fsS http://localhost:8081/actuator/health | grep -q '\"status\":\"UP\"' || exit 1"]
       interval: 10s
