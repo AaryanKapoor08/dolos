@@ -1,0 +1,33 @@
+# Dolos — application services (Phase 0C+).
+#
+# Brought up alongside the infra baseline; joins the same external `dolos` network so
+# services reach Postgres by its DNS name. Run together with:
+#   docker compose -f infra.yml -f services.yml up -d
+# (the helper: ./infra.ps1 up brings up infra only; build services explicitly.)
+
+name: dolos-services
+
+services:
+  transaction-service:
+    build:
+      context: ../..
+      dockerfile: services/transaction-service/Dockerfile
+    image: dolos/transaction-service:0.0.1-SNAPSHOT
+    container_name: dolos-transaction-service
+    restart: unless-stopped
+    ports:
+      - "8081:8081"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8081/actuator/health | grep -q '\"status\":\"UP\"' || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 40s
+    networks:
+      - dolos
+
+# The `dolos` network is created by infra.yml; here we attach to it as external.
+networks:
+  dolos:
+    name: dolos
+    external: true
