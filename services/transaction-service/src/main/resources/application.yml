@@ -1,0 +1,28 @@
+spring:
+  application:
+    name: transaction-service
+  threads:
+    virtual:
+      # Java 21 virtual threads for request handling (Loom baseline; revisited per phase).
+      enabled: true
+
+server:
+  port: 8081
+
+management:
+  endpoints:
+    web:
+      exposure:
+        # Expose only health + info for now; widen deliberately as observability grows.
+        include: health,info
+  endpoint:
+    health:
+      show-details: always
+  info:
+    env:
+      enabled: true
+
+info:
+  app:
+    name: ${spring.application.name}
+    phase: "0C"
