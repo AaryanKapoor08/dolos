@@ -14,6 +14,13 @@ dependencies {
 
     implementation("org.springframework.boot:spring-boot-starter-web")
     implementation("org.springframework.boot:spring-boot-starter-actuator")
+    implementation("org.springframework.boot:spring-boot-starter-validation")
+
+    // Persistence: JPA/Hibernate + Flyway-managed schema on PostgreSQL (Phase 0D).
+    implementation("org.springframework.boot:spring-boot-starter-data-jpa")
+    implementation("org.flywaydb:flyway-core")
+    implementation("org.flywaydb:flyway-database-postgresql")
+    runtimeOnly("org.postgresql:postgresql")
 
     // Structured (JSON) logging — see src/main/resources/logback-spring.xml.
     implementation(libs.logstash.logback.encoder)
