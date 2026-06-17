@@ -14,6 +14,7 @@ plugins {
 }
 
 dependencies {
+    implementation(project(":libs:dolos-common"))
     implementation(project(":libs:dolos-events"))
 
     implementation("org.springframework.boot:spring-boot-starter-webflux")
