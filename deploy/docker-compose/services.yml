@@ -32,6 +32,42 @@ services:
     networks:
       - dolos
 
+  # Reactive edge (Phase 1B): persists raw inbound transactions via R2DBC and publishes
+  # TransactionReceived to Redpanda. Needs both Postgres and the broker healthy.
+  ingestion-service:
+    build:
+      context: ../..
+      dockerfile: services/ingestion-service/Dockerfile
+    image: dolos/ingestion-service:0.0.1-SNAPSHOT
+    container_name: dolos-ingestion-service
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redpanda:
+        condition: service_healthy
+    ports:
+      - "8082:8082"
+    environment:
+      # Reactive data path (R2DBC) + a JDBC URL used only by Flyway for migrations.
+      # `?schema=ingestion` keeps this service's tables in its own schema (see application.yml).
+      SPRING_R2DBC_URL: r2dbc:postgresql://postgres:5432/${POSTGRES_DB:-dolos}?schema=ingestion
+      SPRING_R2DBC_USERNAME: ${POSTGRES_USER:-dolos}
+      SPRING_R2DBC_PASSWORD: ${POSTGRES_PASSWORD:-dolos}
+      SPRING_FLYWAY_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-dolos}
+      SPRING_FLYWAY_USER: ${POSTGRES_USER:-dolos}
+      SPRING_FLYWAY_PASSWORD: ${POSTGRES_PASSWORD:-dolos}
+      # Reach Redpanda by its internal listener on the shared `dolos` network.
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: redpanda:9092
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8082/actuator/health | grep -q '\"status\":\"UP\"' || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 40s
+    networks:
+      - dolos
+
 # The `dolos` network is created by infra.yml; here we attach to it as external.
 networks:
   dolos:

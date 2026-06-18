@@ -1,5 +1,9 @@
 package com.dolos.ingestion.config;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.databind.json.JsonMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import java.util.HashMap;
 import java.util.Map;
 import org.apache.kafka.clients.producer.ProducerConfig;
@@ -16,6 +20,10 @@ import org.springframework.kafka.support.serializer.JsonSerializer;
  * Explicit Kafka producer wiring for ingestion-service. Keys are account ids (String) so a
  * given account's transactions keep per-partition ordering; values are dolos-events records
  * serialized as JSON. Idempotent + acks=all so a retry can't silently duplicate or drop an event.
+ *
+ * <p>The value serializer uses a dedicated ObjectMapper that writes {@code java.time} values as
+ * ISO-8601 strings (not numeric epochs) and omits Java type headers — so the wire payload is
+ * clean, human-readable JSON that any consumer (Spring, NiFi, Redpanda Console) can read.
  */
 @Configuration
 public class KafkaProducerConfig {
@@ -25,14 +33,18 @@ public class KafkaProducerConfig {
             @Value("${spring.kafka.bootstrap-servers}") String bootstrapServers) {
         Map<String, Object> config = new HashMap<>();
         config.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
-        config.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
-        config.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, JsonSerializer.class);
         config.put(ProducerConfig.ACKS_CONFIG, "all");
         config.put(ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG, true);
-        // Don't stamp outbound JSON with Java type headers — keeps the wire payload framework-neutral
-        // so any consumer (or Redpanda Console) reads clean JSON.
-        config.put(JsonSerializer.ADD_TYPE_INFO_HEADERS, false);
-        return new DefaultKafkaProducerFactory<>(config);
+
+        ObjectMapper mapper =
+                JsonMapper.builder()
+                        .addModule(new JavaTimeModule())
+                        .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
+                        .build();
+        JsonSerializer<Object> valueSerializer = new JsonSerializer<>(mapper);
+        valueSerializer.setAddTypeInfo(false);
+
+        return new DefaultKafkaProducerFactory<>(config, new StringSerializer(), valueSerializer);
     }
 
     @Bean

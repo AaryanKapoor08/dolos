@@ -3,7 +3,9 @@ spring:
     name: ingestion-service
   r2dbc:
     # App data path is reactive. Host default; container overrides via SPRING_R2DBC_* (services.yml).
-    url: r2dbc:postgresql://localhost:5432/dolos
+    # `schema=ingestion` sets the connection search_path so unqualified table names resolve to
+    # this service's own schema (see spring.flyway.schemas below).
+    url: r2dbc:postgresql://localhost:5432/dolos?schema=ingestion
     username: dolos
     password: dolos
   flyway:
@@ -12,8 +14,10 @@ spring:
     url: jdbc:postgresql://localhost:5432/dolos
     user: dolos
     password: dolos
-    # Own history table so multiple services can share the `dolos` database without colliding.
-    table: flyway_schema_history_ingestion
+    # Own schema so services can share the `dolos` database without colliding: Flyway creates and
+    # migrates the `ingestion` schema (its history table lives there too), isolated from `public`.
+    schemas: ingestion
+    default-schema: ingestion
     locations: classpath:db/migration
   kafka:
     # Host default (Redpanda external listener); container overrides via SPRING_KAFKA_BOOTSTRAP_SERVERS.

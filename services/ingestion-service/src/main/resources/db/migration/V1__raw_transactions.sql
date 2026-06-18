@@ -2,8 +2,9 @@
 -- This is the audit trail of *what arrived* (before canonicalisation/scoring). The canonical
 -- store of record remains transaction-service's `transactions` table.
 --
--- Lives in the shared `dolos` database but is owned solely by ingestion-service (tracked by
--- its own Flyway history table, flyway_schema_history_ingestion).
+-- Lives in the shared `dolos` database but is owned solely by ingestion-service: Flyway creates
+-- and migrates the dedicated `ingestion` schema (its history table lives there too), isolated
+-- from `public` so multiple services can share one database without colliding.
 
 CREATE TABLE raw_transactions (
     id                       UUID           PRIMARY KEY,   -- == TransactionReceived.transactionId
