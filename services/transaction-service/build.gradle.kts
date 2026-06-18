@@ -11,10 +11,15 @@ plugins {
 
 dependencies {
     implementation(project(":libs:dolos-common"))
+    implementation(project(":libs:dolos-events"))
 
     implementation("org.springframework.boot:spring-boot-starter-web")
     implementation("org.springframework.boot:spring-boot-starter-actuator")
     implementation("org.springframework.boot:spring-boot-starter-validation")
+
+    // Event backbone (Phase 1C): consume TransactionReceived from Kafka/Redpanda and persist
+    // the canonical transaction. transaction-service is the canonical store of record.
+    implementation("org.springframework.kafka:spring-kafka")
 
     // Persistence: JPA/Hibernate + Flyway-managed schema on PostgreSQL (Phase 0D).
     implementation("org.springframework.boot:spring-boot-starter-data-jpa")
