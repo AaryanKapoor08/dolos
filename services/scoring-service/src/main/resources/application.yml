@@ -1,0 +1,32 @@
+spring:
+  application:
+    name: scoring-service
+  threads:
+    virtual:
+      enabled: true
+  kafka:
+    # Host default (Redpanda external listener); container overrides via SPRING_KAFKA_BOOTSTRAP_SERVERS.
+    bootstrap-servers: localhost:19092
+    consumer:
+      # Consumer group for the v0 scoring path (Phase 1D).
+      group-id: scoring-service
+
+server:
+  port: 8083
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: always
+  info:
+    env:
+      enabled: true
+
+info:
+  app:
+    name: ${spring.application.name}
+    phase: "1D"
