@@ -2,6 +2,7 @@
 docs/
 claude/
 learning/
+prompt.md
 *.odt
 listings*
 
