@@ -37,6 +37,7 @@ include("libs:dolos-events")
 include("services:transaction-service")
 include("services:ingestion-service")
 include("services:scoring-service")
+include("services:alert-service")
 // Added as they are created:
 // include("libs:dolos-proto")
 // include("libs:dolos-security")

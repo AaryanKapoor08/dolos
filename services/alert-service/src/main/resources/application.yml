@@ -1,0 +1,61 @@
+spring:
+  application:
+    name: alert-service
+  threads:
+    virtual:
+      # Java 21 virtual threads for request handling + the blocking Kafka consumer path.
+      enabled: true
+  datasource:
+    # Host default; the container overrides via SPRING_DATASOURCE_* (see services.yml).
+    url: jdbc:postgresql://localhost:5432/dolos
+    username: dolos
+    password: dolos
+  jpa:
+    # Flyway owns the schema; Hibernate neither creates nor mutates it.
+    hibernate:
+      ddl-auto: none
+    open-in-view: false
+    properties:
+      hibernate:
+        # Qualify entity tables with this service's own schema (matches Flyway below).
+        default_schema: alert
+        jdbc:
+          time_zone: UTC
+  flyway:
+    enabled: true
+    # Own schema so services can share the `dolos` database without colliding: Flyway creates and
+    # migrates the `alert` schema (its history table lives there too), isolated from `public`.
+    schemas: alert
+    default-schema: alert
+    locations: classpath:db/migration
+  kafka:
+    # Host default (Redpanda external listener); container overrides via SPRING_KAFKA_BOOTSTRAP_SERVERS.
+    bootstrap-servers: localhost:19092
+    consumer:
+      # Consumer group for the alert path (Phase 1E); own group, earliest, drains the backlog.
+      group-id: alert-service
+
+# Alert policy: a RiskScored at/above this score raises an alert. Configurable; v0 LARGE_AMOUNT = 60.
+dolos:
+  alert:
+    score-threshold: 60
+
+server:
+  port: 8084
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: always
+  info:
+    env:
+      enabled: true
+
+info:
+  app:
+    name: ${spring.application.name}
+    phase: "1E"
