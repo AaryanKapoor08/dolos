@@ -1,0 +1,8 @@
+accountId,counterpartyAccountId,amount,currency,direction,description,occurredAt
+ACC-1001,ACC-9001,15000.00,USD,DEBIT,Wire to overseas vendor,2026-06-22T09:15:00Z
+ACC-1002,ACC-9002,24500.00,USD,DEBIT,Equipment purchase,2026-06-22T09:16:00Z
+ACC-1003,ACC-9003,50000.00,EUR,CREDIT,Property settlement proceeds,2026-06-22T09:17:00Z
+ACC-1004,ACC-9004,9500.00,USD,DEBIT,Cash deposit under reporting line,2026-06-22T09:18:00Z
+ACC-1005,ACC-9005,45.20,USD,DEBIT,Coffee shop,2026-06-22T09:19:00Z
+ACC-1006,ACC-9006,300.00,USD,CREDIT,Customer refund,2026-06-22T09:20:00Z
+ACC-1007,ACC-9007,12750.00,GBP,DEBIT,Supplier invoice payment,2026-06-22T09:21:00Z

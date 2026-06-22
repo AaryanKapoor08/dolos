@@ -1,0 +1,2 @@
+# NiFi watches this folder (GetFile). Drop sample-transactions.csv here to feed ingestion.
+# Kept empty in git so dropped CSVs (which NiFi consumes) are not committed.

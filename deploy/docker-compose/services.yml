@@ -130,6 +130,47 @@ services:
     networks:
       - dolos
 
+  # Bulk CSV feed (Phase 1G): Apache NiFi watches a host folder and turns each dropped CSV
+  # into a bulk NDJSON POST to ingestion-service. Runs UNSECURED over HTTP so the bootstrap
+  # can drive the REST API anonymously — local $0 dev only, never production.
+  nifi:
+    image: apache/nifi:1.28.1
+    container_name: dolos-nifi
+    restart: unless-stopped
+    depends_on:
+      ingestion-service:
+        condition: service_healthy
+    ports:
+      - "8089:8080"   # NiFi UI — http://localhost:8089/nifi
+    environment:
+      NIFI_WEB_HTTP_HOST: "0.0.0.0"
+      NIFI_WEB_HTTP_PORT: "8080"
+    volumes:
+      # The watched drop folder (host bind): drop sample-transactions.csv here to feed the slice.
+      - ../nifi/incoming:/opt/dolos/incoming
+    networks:
+      - dolos
+
+  # One-shot: waits for NiFi, then builds the GetFile -> ConvertRecord -> InvokeHTTP dataflow
+  # via NiFi's REST API. Re-runs cleanly because NiFi starts with an empty flow (no flow volume
+  # is mounted), so every `up` lands the same freshly-built feed.
+  nifi-flow-init:
+    image: alpine:3.20
+    container_name: dolos-nifi-flow-init
+    restart: "no"
+    depends_on:
+      nifi:
+        condition: service_started
+    volumes:
+      - ../nifi/bootstrap:/bootstrap:ro
+    environment:
+      NIFI_API: http://nifi:8080/nifi-api
+      INGEST_URL: http://ingestion-service:8082/ingest/transactions
+      WATCH_DIR: /opt/dolos/incoming
+    command: ["sh", "-c", "apk add --no-cache curl jq >/dev/null && sh /bootstrap/build-flow.sh"]
+    networks:
+      - dolos
+
 # The `dolos` network is created by infra.yml; here we attach to it as external.
 networks:
   dolos:

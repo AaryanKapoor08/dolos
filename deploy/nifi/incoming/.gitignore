@@ -1,0 +1,4 @@
+# Dropped CSVs are runtime input consumed by NiFi — never commit them.
+*
+!.gitkeep
+!.gitignore
