@@ -3,7 +3,7 @@ package com.dolos.alert.service;
 import com.dolos.alert.api.AlertMapper;
 import com.dolos.alert.api.dto.AlertResponse;
 import com.dolos.alert.domain.AlertEntity;
-import com.dolos.alert.domain.AlertRepository;
+import com.dolos.alert.repo.AlertRepository;
 import com.dolos.events.AlertRaised;
 import com.dolos.events.RiskScored;
 import com.dolos.events.Topics;

@@ -8,7 +8,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.dolos.alert.domain.AlertEntity;
-import com.dolos.alert.domain.AlertRepository;
+import com.dolos.alert.repo.AlertRepository;
 import com.dolos.events.AlertRaised;
 import com.dolos.events.RiskScored;
 import com.dolos.events.Topics;

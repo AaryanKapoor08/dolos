@@ -1,5 +1,6 @@
-package com.dolos.alert.domain;
+package com.dolos.alert.repo;
 
+import com.dolos.alert.domain.AlertEntity;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
 
