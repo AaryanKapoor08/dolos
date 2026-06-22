@@ -6,7 +6,7 @@
  *
  * Note: test dependency versions are hardcoded here because precompiled script
  * plugins cannot read the version catalog directly. Keep them aligned with
- * gradle/libs.versions.toml (junit / mockito).
+ * gradle/libs.versions.toml (junit / mockito / archunit).
  */
 plugins {
     `java-library`
@@ -27,6 +27,9 @@ dependencies {
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
     testImplementation("org.mockito:mockito-core:5.14.2")
     testImplementation("org.mockito:mockito-junit-jupiter:5.14.2")
+    // Architecture tests (Phase 1F baseline → monorepo-wide in Phase 6E). Available to every
+    // module so each can enforce its own layering/boundary rules.
+    testImplementation("com.tngtech.archunit:archunit-junit5:1.3.0")
 }
 
 tasks.withType<JavaCompile>().configureEach {
