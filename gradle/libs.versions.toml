@@ -21,7 +21,7 @@ logstashLogbackEncoder = "8.0"  # JSON structured logging encoder for Logback
 
 # Forward-looking (wired in later; verify when adopted)
 springCloud = "2024.0.0"        # Spring Cloud (Gateway/Eureka/Config); pairs with Spring Boot 3.4.x
-testcontainers = "1.20.4"
+testcontainers = "1.21.3"       # used by the slice-e2e module (Phase 1F)
 # springAi   = "1.0.0"          # verify when adopted
 # axon       = "4.10.x"         # verify when adopted
 # drools     = "9.x"            # verify when adopted
