@@ -20,6 +20,9 @@ import java.util.UUID;
  * @param currency             ISO-4217 currency code
  * @param direction            "DEBIT" (money leaves) or "CREDIT" (money enters) the subject account
  * @param description          free-text description, may be {@code null}
+ * @param country              ISO-3166 alpha-2 country the transaction originated in, may be
+ *                             {@code null}. Carried so stateful scoring (Phase 2A) can track an
+ *                             account's last-seen location for the impossible-travel typology.
  * @param occurredAt           when the transaction took place
  * @param receivedAt           when ingestion observed it
  */
@@ -31,6 +34,7 @@ public record TransactionReceived(
         String currency,
         String direction,
         String description,
+        String country,
         Instant occurredAt,
         Instant receivedAt) {
 

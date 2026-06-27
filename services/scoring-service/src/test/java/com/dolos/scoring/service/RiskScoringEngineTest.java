@@ -22,6 +22,7 @@ class RiskScoringEngineTest {
                 "CAD",
                 "DEBIT",
                 "test",
+                "CA",
                 Instant.parse("2026-02-02T00:00:00Z"),
                 Instant.parse("2026-02-02T00:00:01Z"));
     }

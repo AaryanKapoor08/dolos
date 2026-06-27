@@ -67,6 +67,7 @@ class TransactionServiceTest {
                         "cad",
                         "CREDIT",
                         "wire in",
+                        "CA",
                         Instant.parse("2026-02-02T00:00:00Z"),
                         Instant.parse("2026-02-02T00:00:01Z"));
         when(repository.existsById(event.transactionId())).thenReturn(false);
@@ -95,6 +96,7 @@ class TransactionServiceTest {
                         new BigDecimal("10.00"),
                         "CAD",
                         "DEBIT",
+                        null,
                         null,
                         Instant.parse("2026-02-02T00:00:00Z"),
                         Instant.parse("2026-02-02T00:00:01Z"));

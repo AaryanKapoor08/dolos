@@ -44,6 +44,7 @@ class IngestionServiceTest {
                         "CAD",
                         "CREDIT",
                         "structuring test",
+                        "CA",
                         Instant.parse("2026-06-16T20:00:00Z"));
 
         // Template echoes back whatever it is asked to insert.
@@ -64,6 +65,7 @@ class IngestionServiceTest {
         assertThat(published.amount()).isEqualByComparingTo("12500.00");
         assertThat(published.currency()).isEqualTo("CAD");
         assertThat(published.direction()).isEqualTo("CREDIT");
+        assertThat(published.country()).isEqualTo("CA");
         assertThat(published.transactionId()).isNotNull();
         assertThat(published.receivedAt()).isNotNull();
     }
