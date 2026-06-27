@@ -7,9 +7,17 @@ spring:
   kafka:
     # Host default (Redpanda external listener); container overrides via SPRING_KAFKA_BOOTSTRAP_SERVERS.
     bootstrap-servers: localhost:19092
-    consumer:
-      # Consumer group for the v0 scoring path (Phase 1D).
-      group-id: scoring-service
+    streams:
+      # Identifies the Streams app: names its consumer group, internal topics, and state-store dir.
+      application-id: scoring-service
+      # In-memory stores still need a state dir for metadata; keep it on a writable path.
+      state-dir: ${java.io.tmpdir}/kafka-streams/scoring
+      properties:
+        # Operators set serdes explicitly; these defaults only cover any internal plumbing.
+        default.key.serde: org.apache.kafka.common.serialization.Serdes$StringSerde
+        default.value.serde: org.apache.kafka.common.serialization.Serdes$StringSerde
+        # Commit/flush promptly so scores appear without waiting the 30s default — snappier demo/test.
+        commit.interval.ms: 200
 
 server:
   port: 8083
@@ -29,4 +37,4 @@ management:
 info:
   app:
     name: ${spring.application.name}
-    phase: "1D"
+    phase: "2A"
