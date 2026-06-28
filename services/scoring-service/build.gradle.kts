@@ -22,6 +22,12 @@ dependencies {
     implementation("org.springframework.kafka:spring-kafka")
     implementation("org.apache.kafka:kafka-streams")
 
+    // Rules engine (Phase 2B): the AML typologies live in DRL, compiled from the classpath into a
+    // KieContainer at startup; drools-mvel + drools-xml-support cover the dialect and kmodule parsing.
+    implementation(libs.drools.engine)
+    implementation(libs.drools.mvel)
+    implementation(libs.drools.xml.support)
+
     // Structured (JSON) logging — see src/main/resources/logback-spring.xml.
     implementation(libs.logstash.logback.encoder)
 

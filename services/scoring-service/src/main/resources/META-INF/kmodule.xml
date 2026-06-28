@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Drools module descriptor (Phase 2B). Declares one knowledge base over the `rules` package and a
+  default *stateless* session: the scoring engine inserts a ScoringFact + ScoreAccumulator, fires
+  once, and reads the result. KieServices.getKieClasspathContainer() finds this file on the
+  classpath and compiles the DRL under rules/ at startup.
+-->
+<kmodule xmlns="http://www.drools.org/xsd/kmodule">
+    <kbase name="amlKBase" packages="rules" default="true">
+        <ksession name="amlSession" type="stateless" default="true"/>
+    </kbase>
+</kmodule>

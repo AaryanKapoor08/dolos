@@ -1,0 +1,72 @@
+package rules;
+
+import com.dolos.scoring.service.ScoringFact;
+import com.dolos.scoring.service.ScoreAccumulator;
+
+// AML typologies (Phase 2B). Each rule matches a ScoringFact (the transaction + windowed state the
+// Kafka Streams topology computed) and contributes points + a reason to the ScoreAccumulator. Moving
+// these out of Java means an analyst can tune a threshold or add a typology by editing this file —
+// the topology and engine code stay untouched. Long gaps are in millis (90d = 7_776_000_000).
+
+rule "large-amount"
+    when
+        $f: ScoringFact(amount >= 10000)
+        $acc: ScoreAccumulator()
+    then
+        $acc.add(60, "LARGE_AMOUNT: amount " + $f.getAmount()
+                + " is at/above the $10k reporting threshold");
+end
+
+rule "structuring"
+    when
+        $f: ScoringFact(structuringCount >= 3, structuringSum >= 9000)
+        $acc: ScoreAccumulator()
+    then
+        $acc.add(70, "STRUCTURING: " + $f.getStructuringCount()
+                + " sub-$10k deposits summing to " + $f.getStructuringSum()
+                + " within 24h on account " + $f.getAccountId());
+end
+
+rule "velocity"
+    when
+        $f: ScoringFact(velocityCount >= 5)
+        $acc: ScoreAccumulator()
+    then
+        $acc.add(40, "VELOCITY: " + $f.getVelocityCount()
+                + " transactions totalling " + $f.getVelocitySum()
+                + " within 1h on account " + $f.getAccountId());
+end
+
+rule "impossible-travel"
+    when
+        $f: ScoringFact(
+                priorCountry != null, country != null, priorOccurredAtMs != null,
+                priorCountry != country,
+                eval($f.getOccurredAtMs() - $f.getPriorOccurredAtMs() >= 0),
+                eval($f.getOccurredAtMs() - $f.getPriorOccurredAtMs() < 7200000))
+        $acc: ScoreAccumulator()
+    then
+        $acc.add(50, "IMPOSSIBLE_TRAVEL: account " + $f.getAccountId()
+                + " moved from " + $f.getPriorCountry() + " to " + $f.getCountry()
+                + " in under 2h");
+end
+
+rule "dormant-wake"
+    when
+        $f: ScoringFact(
+                priorOccurredAtMs != null, amount >= 5000,
+                eval($f.getOccurredAtMs() - $f.getPriorOccurredAtMs() >= 7776000000L))
+        $acc: ScoreAccumulator()
+    then
+        $acc.add(45, "DORMANT_WAKE: account " + $f.getAccountId()
+                + " reactivated after long dormancy with amount " + $f.getAmount());
+end
+
+rule "new-payee-drain"
+    when
+        $f: ScoringFact(newPayee == true, direction == "DEBIT", amount >= 5000)
+        $acc: ScoreAccumulator()
+    then
+        $acc.add(45, "NEW_PAYEE_DRAIN: first transfer to new payee " + $f.getCounterparty()
+                + " of " + $f.getAmount());
+end

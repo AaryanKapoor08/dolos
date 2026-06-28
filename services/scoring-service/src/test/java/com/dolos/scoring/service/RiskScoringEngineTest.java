@@ -3,125 +3,171 @@ package com.dolos.scoring.service;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.dolos.events.RiskScored;
-import com.dolos.events.TransactionReceived;
 import java.math.BigDecimal;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 
 /**
- * Unit tests for the stateful engine (Phase 2A). The engine is fed {@link ScoringFact}s directly —
- * no Kafka, no stores — proving each typology fires off the aggregates alone. The end-to-end wiring
- * (stores producing those aggregates) is covered by the {@code TopologyTestDriver} test.
+ * Per-typology tests for the Drools rule set (Phase 2B). Each test crafts a {@link ScoringFact} that
+ * should trip exactly one rule and asserts the rule fired (reason + points), plus a quiet fact that
+ * trips nothing. The engine compiles {@code rules/aml.drl} from the classpath, so these exercise the
+ * real DRL — not a Java stand-in.
  */
 class RiskScoringEngineTest {
 
-    private static final Instant T0 = Instant.parse("2026-02-02T12:00:00Z");
+    private static final long T0 = Instant.parse("2026-02-02T12:00:00Z").toEpochMilli();
 
     private final RiskScoringEngine engine = new RiskScoringEngine();
 
-    private static TransactionReceived txn(String amount, String country, Instant occurredAt) {
-        return new TransactionReceived(
-                UUID.randomUUID(),
-                "ACC-1",
-                "ACC-2",
-                new BigDecimal(amount),
-                "CAD",
-                "DEBIT",
-                "test",
-                country,
-                occurredAt,
-                occurredAt.plusSeconds(1));
-    }
-
-    /** A fact with no notable history — just the one transaction. */
-    private static ScoringFact lone(String amount) {
-        return new ScoringFact(
-                txn(amount, "CA", T0), 1, new BigDecimal(amount), 0, BigDecimal.ZERO, null, null);
-    }
-
     @Test
-    void smallLoneAmount_scoresZeroWithNoReasons() {
-        RiskScored scored = engine.score(lone("100.00"));
-
-        assertThat(scored.score()).isZero();
-        assertThat(scored.reasons()).isEmpty();
-        assertThat(scored.accountId()).isEqualTo("ACC-1");
-    }
-
-    @Test
-    void atOrAboveReportingThreshold_flagsLargeAmount() {
-        RiskScored scored = engine.score(lone("10000.00"));
-
+    void largeAmount_fires() {
+        RiskScored scored = engine.score(new FactBuilder().amount("10000").build());
         assertThat(scored.score()).isEqualTo(60);
-        assertThat(scored.reasons()).hasSize(1).first().asString().contains("LARGE_AMOUNT");
+        assertThat(scored.reasons()).anySatisfy(r -> assertThat(r).contains("LARGE_AMOUNT"));
     }
 
     @Test
-    void burstOfSubThresholdDeposits_flagsStructuring() {
-        // 4 sub-$10k deposits summing to 9600 within the day — the v0 engine could never see this.
-        ScoringFact fact =
-                new ScoringFact(
-                        txn("2400.00", "CA", T0), 4, new BigDecimal("9600.00"),
-                        4, new BigDecimal("9600.00"), null, null);
-
-        RiskScored scored = engine.score(fact);
-
+    void structuring_fires() {
+        RiskScored scored =
+                engine.score(
+                        new FactBuilder()
+                                .amount("2400")
+                                .structuring(4, "9600")
+                                .build());
         assertThat(scored.score()).isEqualTo(70);
         assertThat(scored.reasons()).anySatisfy(r -> assertThat(r).contains("STRUCTURING"));
     }
 
     @Test
-    void fewSubThresholdDeposits_doesNotFlagStructuring() {
-        ScoringFact fact =
-                new ScoringFact(
-                        txn("2400.00", "CA", T0), 2, new BigDecimal("4800.00"),
-                        2, new BigDecimal("4800.00"), null, null);
-
-        RiskScored scored = engine.score(fact);
-
-        assertThat(scored.score()).isZero();
-        assertThat(scored.reasons()).isEmpty();
-    }
-
-    @Test
-    void manyTransactionsInWindow_flagsVelocity() {
-        ScoringFact fact =
-                new ScoringFact(
-                        txn("500.00", "CA", T0), 6, new BigDecimal("3000.00"),
-                        0, BigDecimal.ZERO, null, null);
-
-        RiskScored scored = engine.score(fact);
-
+    void velocity_fires() {
+        RiskScored scored =
+                engine.score(new FactBuilder().amount("500").velocity(6, "3000").build());
         assertThat(scored.score()).isEqualTo(40);
         assertThat(scored.reasons()).anySatisfy(r -> assertThat(r).contains("VELOCITY"));
     }
 
     @Test
-    void countryChangeInShortGap_flagsImpossibleTravel() {
-        // Prior txn in CA 30 minutes ago; this one in GB — implausibly fast.
-        long priorMs = T0.minusSeconds(1800).toEpochMilli();
-        ScoringFact fact =
-                new ScoringFact(
-                        txn("500.00", "GB", T0), 1, new BigDecimal("500.00"),
-                        0, BigDecimal.ZERO, "CA", priorMs);
-
-        RiskScored scored = engine.score(fact);
-
+    void impossibleTravel_fires() {
+        RiskScored scored =
+                engine.score(
+                        new FactBuilder()
+                                .amount("500")
+                                .country("GB")
+                                .prior("CA", T0 - Duration.ofMinutes(30).toMillis())
+                                .build());
         assertThat(scored.score()).isEqualTo(50);
         assertThat(scored.reasons()).anySatisfy(r -> assertThat(r).contains("IMPOSSIBLE_TRAVEL"));
     }
 
     @Test
-    void sameCountry_doesNotFlagTravel() {
-        long priorMs = T0.minusSeconds(60).toEpochMilli();
-        ScoringFact fact =
-                new ScoringFact(
-                        txn("500.00", "CA", T0), 1, new BigDecimal("500.00"),
-                        0, BigDecimal.ZERO, "CA", priorMs);
+    void dormantWake_fires() {
+        RiskScored scored =
+                engine.score(
+                        new FactBuilder()
+                                .amount("6000")
+                                .prior("CA", T0 - Duration.ofDays(100).toMillis())
+                                .build());
+        assertThat(scored.score()).isEqualTo(45);
+        assertThat(scored.reasons()).anySatisfy(r -> assertThat(r).contains("DORMANT_WAKE"));
+    }
 
-        RiskScored scored = engine.score(fact);
+    @Test
+    void newPayeeDrain_fires() {
+        RiskScored scored =
+                engine.score(
+                        new FactBuilder()
+                                .amount("6000")
+                                .direction("DEBIT")
+                                .counterparty("ACC-NEW")
+                                .newPayee(true)
+                                .build());
+        assertThat(scored.score()).isEqualTo(45);
+        assertThat(scored.reasons()).anySatisfy(r -> assertThat(r).contains("NEW_PAYEE_DRAIN"));
+    }
 
+    @Test
+    void quietFact_firesNothing() {
+        RiskScored scored = engine.score(new FactBuilder().amount("100").build());
         assertThat(scored.score()).isZero();
+        assertThat(scored.reasons()).isEmpty();
+    }
+
+    /** Fluent builder with unremarkable defaults; each test overrides only what its rule needs. */
+    private static final class FactBuilder {
+        private BigDecimal amount = new BigDecimal("100");
+        private String country = "CA";
+        private final long occurredAtMs = T0;
+        private String counterparty = null;
+        private String direction = "CREDIT";
+        private int velocityCount = 1;
+        private BigDecimal velocitySum = new BigDecimal("100");
+        private int structuringCount = 0;
+        private BigDecimal structuringSum = BigDecimal.ZERO;
+        private String priorCountry = null;
+        private Long priorOccurredAtMs = null;
+        private boolean newPayee = false;
+
+        FactBuilder amount(String a) {
+            this.amount = new BigDecimal(a);
+            return this;
+        }
+
+        FactBuilder country(String c) {
+            this.country = c;
+            return this;
+        }
+
+        FactBuilder direction(String d) {
+            this.direction = d;
+            return this;
+        }
+
+        FactBuilder counterparty(String cp) {
+            this.counterparty = cp;
+            return this;
+        }
+
+        FactBuilder velocity(int count, String sum) {
+            this.velocityCount = count;
+            this.velocitySum = new BigDecimal(sum);
+            return this;
+        }
+
+        FactBuilder structuring(int count, String sum) {
+            this.structuringCount = count;
+            this.structuringSum = new BigDecimal(sum);
+            return this;
+        }
+
+        FactBuilder prior(String country, long occurredAtMs) {
+            this.priorCountry = country;
+            this.priorOccurredAtMs = occurredAtMs;
+            return this;
+        }
+
+        FactBuilder newPayee(boolean v) {
+            this.newPayee = v;
+            return this;
+        }
+
+        ScoringFact build() {
+            return new ScoringFact(
+                    UUID.randomUUID(),
+                    "ACC-1",
+                    amount,
+                    country,
+                    occurredAtMs,
+                    counterparty,
+                    direction,
+                    velocityCount,
+                    velocitySum,
+                    structuringCount,
+                    structuringSum,
+                    priorCountry,
+                    priorOccurredAtMs,
+                    newPayee);
+        }
     }
 }

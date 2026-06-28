@@ -43,6 +43,7 @@ public class ScoringTopology {
         Serde<RiskScored> scoredSerde = new JsonSerde<>(mapper, RiskScored.class);
         Serde<BigDecimal> amountSerde = new JsonSerde<>(mapper, BigDecimal.class);
         Serde<LastSeen> lastSeenSerde = new JsonSerde<>(mapper, LastSeen.class);
+        Serde<Boolean> payeeSerde = new JsonSerde<>(mapper, Boolean.class);
 
         builder.addStateStore(
                 Stores.windowStoreBuilder(
@@ -67,13 +68,19 @@ public class ScoringTopology {
                         Stores.inMemoryKeyValueStore(ScoringProcessor.LAST_SEEN_STORE),
                         keySerde,
                         lastSeenSerde));
+        builder.addStateStore(
+                Stores.keyValueStoreBuilder(
+                        Stores.inMemoryKeyValueStore(ScoringProcessor.PAYEE_STORE),
+                        keySerde,
+                        payeeSerde));
 
         builder.stream(Topics.TRANSACTIONS_RECEIVED, Consumed.with(keySerde, txnSerde))
                 .process(
                         () -> new ScoringProcessor(engine),
                         ScoringProcessor.VELOCITY_STORE,
                         ScoringProcessor.STRUCTURING_STORE,
-                        ScoringProcessor.LAST_SEEN_STORE)
+                        ScoringProcessor.LAST_SEEN_STORE,
+                        ScoringProcessor.PAYEE_STORE)
                 .to(Topics.RISK_SCORED, Produced.with(keySerde, scoredSerde));
     }
 

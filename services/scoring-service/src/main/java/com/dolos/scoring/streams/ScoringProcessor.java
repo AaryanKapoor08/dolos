@@ -36,10 +36,12 @@ public class ScoringProcessor implements Processor<String, TransactionReceived, 
     static final String VELOCITY_STORE = "velocity-store";
     static final String STRUCTURING_STORE = "structuring-store";
     static final String LAST_SEEN_STORE = "last-seen-store";
+    static final String PAYEE_STORE = "payee-store";
 
     private static final Duration VELOCITY_WINDOW = RiskScoringEngine.VELOCITY_WINDOW;
     private static final Duration STRUCTURING_WINDOW = RiskScoringEngine.STRUCTURING_WINDOW;
     private static final BigDecimal REPORTING_THRESHOLD = RiskScoringEngine.REPORTING_THRESHOLD;
+    private static final String DEBIT = "DEBIT";
 
     private final RiskScoringEngine engine;
 
@@ -47,6 +49,7 @@ public class ScoringProcessor implements Processor<String, TransactionReceived, 
     private WindowStore<String, BigDecimal> velocityStore;
     private WindowStore<String, BigDecimal> structuringStore;
     private KeyValueStore<String, LastSeen> lastSeenStore;
+    private KeyValueStore<String, Boolean> payeeStore;
 
     public ScoringProcessor(RiskScoringEngine engine) {
         this.engine = engine;
@@ -58,6 +61,7 @@ public class ScoringProcessor implements Processor<String, TransactionReceived, 
         this.velocityStore = context.getStateStore(VELOCITY_STORE);
         this.structuringStore = context.getStateStore(STRUCTURING_STORE);
         this.lastSeenStore = context.getStateStore(LAST_SEEN_STORE);
+        this.payeeStore = context.getStateStore(PAYEE_STORE);
     }
 
     @Override
@@ -78,18 +82,45 @@ public class ScoringProcessor implements Processor<String, TransactionReceived, 
         LastSeen prior = lastSeenStore.get(account);
         lastSeenStore.put(account, new LastSeen(txn.country(), ts));
 
+        boolean newPayee = isFirstTimePayee(account, txn);
+
         ScoringFact fact =
                 new ScoringFact(
-                        txn,
+                        txn.transactionId(),
+                        account,
+                        txn.amount(),
+                        txn.country(),
+                        ts,
+                        txn.counterpartyAccountId(),
+                        txn.direction(),
                         velocity.count,
                         velocity.sum,
                         structuring.count,
                         structuring.sum,
                         prior == null ? null : prior.country(),
-                        prior == null ? null : prior.occurredAtMs());
+                        prior == null ? null : prior.occurredAtMs(),
+                        newPayee);
 
         RiskScored scored = engine.score(fact);
         context.forward(record.withValue(scored));
+    }
+
+    /**
+     * Whether this is the first time {@code account} has paid this counterparty (an outbound DEBIT to
+     * a never-before-seen payee — the precondition for the new-payee-drain typology). Records the
+     * (account, counterparty) pair so subsequent transfers are no longer "new".
+     */
+    private boolean isFirstTimePayee(String account, TransactionReceived txn) {
+        String counterparty = txn.counterpartyAccountId();
+        if (!DEBIT.equals(txn.direction()) || counterparty == null) {
+            return false;
+        }
+        String key = account + '|' + counterparty;
+        boolean firstTime = payeeStore.get(key) == null;
+        if (firstTime) {
+            payeeStore.put(key, Boolean.TRUE);
+        }
+        return firstTime;
     }
 
     /** Count + sum of stored amounts for an account over the trailing window ending at {@code ts}. */
