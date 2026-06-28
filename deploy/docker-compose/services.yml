@@ -86,6 +86,7 @@ services:
         condition: service_healthy
     ports:
       - "8083:8083"
+      - "9090:9090"   # gRPC ScoringService (Phase 2C)
     environment:
       # Consume/produce over the broker's internal listener on the shared `dolos` network.
       SPRING_KAFKA_BOOTSTRAP_SERVERS: redpanda:9092
@@ -121,6 +122,8 @@ services:
       SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-dolos}
       # Consume RiskScored / produce AlertRaised over the broker's internal listener.
       SPRING_KAFKA_BOOTSTRAP_SERVERS: redpanda:9092
+      # Synchronous score-detail enrichment over gRPC (Phase 2C); Resilience4j covers an outage.
+      DOLOS_SCORING_GRPC_TARGET: scoring-service:9090
     healthcheck:
       test: ["CMD-SHELL", "curl -fsS http://localhost:8084/actuator/health | grep -q '\"status\":\"UP\"' || exit 1"]
       interval: 10s
