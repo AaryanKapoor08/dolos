@@ -15,5 +15,8 @@ public final class Topics {
     /** Alerts raised by alert-service when a score crosses the threshold. */
     public static final String ALERTS_RAISED = "alerts.raised";
 
+    /** Mule/cash-out rings detected by graph-service from the transaction graph (Phase 2E). */
+    public static final String RINGS_DETECTED = "rings.detected";
+
     private Topics() {}
 }
