@@ -38,4 +38,6 @@ dependencies {
     implementation(libs.logstash.logback.encoder)
 
     testImplementation("org.springframework.boot:spring-boot-starter-test")
+    // In-process gRPC server to exercise the ScoreDetailClient against a real channel (Phase 2C).
+    testImplementation("io.grpc:grpc-inprocess:1.68.1")
 }

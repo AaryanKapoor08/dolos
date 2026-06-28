@@ -48,8 +48,7 @@ public class ScoreDetailClient {
     }
 
     /** Resilience4j fallback — same signature plus the Throwable. Keeps the alert flowing. */
-    @SuppressWarnings("unused")
-    private ScoreDetailView fallback(UUID transactionId, Throwable t) {
+    ScoreDetailView fallback(UUID transactionId, Throwable t) {
         log.warn(
                 "scoring gRPC unavailable for txn {} ({}) — using fallback detail",
                 transactionId,
