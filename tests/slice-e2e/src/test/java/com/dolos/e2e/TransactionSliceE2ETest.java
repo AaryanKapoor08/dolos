@@ -234,22 +234,41 @@ class TransactionSliceE2ETest {
                         });
     }
 
-    /** Creates the three service schemas + tables up-front (Flyway is disabled in every context). */
+    /**
+     * Creates the service schemas + tables up-front (Flyway is disabled in every context), applying
+     * each service's full migration chain in version order so the e2e schema matches production —
+     * including the alert {@code detail} (V2), the ring/dedupe columns (V3), and the CQRS
+     * {@code alert_view} read model (V4) the queue is served from.
+     */
     private static void prepareSchemas() throws Exception {
         try (Connection con = POSTGRES.createConnection("")) {
-            runMigration(con, "ingestion", "/db/migration/V1__raw_transactions.sql");
-            runMigration(con, "public", "/db/migration/V1__transactions.sql");
-            runMigration(con, "alert", "/db/migration/V1__alerts.sql");
+            runMigrations(
+                    con,
+                    "ingestion",
+                    "/db/migration/V1__raw_transactions.sql",
+                    "/db/migration/V2__raw_transactions_country.sql",
+                    "/db/migration/V3__raw_transactions_customer_device.sql");
+            runMigrations(con, "public", "/db/migration/V1__transactions.sql");
+            runMigrations(
+                    con,
+                    "alert",
+                    "/db/migration/V1__alerts.sql",
+                    "/db/migration/V2__alerts_detail.sql",
+                    "/db/migration/V3__alerts_ring.sql",
+                    "/db/migration/V4__alert_view.sql");
         }
     }
 
-    private static void runMigration(Connection con, String schema, String resource) throws Exception {
+    private static void runMigrations(Connection con, String schema, String... resources)
+            throws Exception {
         try (Statement st = con.createStatement()) {
             if (!"public".equals(schema)) {
                 st.execute("CREATE SCHEMA IF NOT EXISTS " + schema);
             }
             st.execute("SET search_path TO " + schema);
-            st.execute(readResource(resource));
+            for (String resource : resources) {
+                st.execute(readResource(resource));
+            }
         }
     }
 
