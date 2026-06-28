@@ -12,7 +12,9 @@ import com.dolos.alert.grpc.ScoreDetailClient;
 import com.dolos.alert.grpc.ScoreDetailView;
 import com.dolos.alert.repo.AlertRepository;
 import com.dolos.alert.repo.AlertViewRepository;
+import com.dolos.alert.domain.AlertView;
 import com.dolos.events.AlertRaised;
+import com.dolos.events.RingDetected;
 import com.dolos.events.RiskScored;
 import com.dolos.events.Topics;
 import java.time.Instant;
@@ -93,6 +95,53 @@ class AlertServiceTest {
         when(repository.existsByTransactionId(event.transactionId())).thenReturn(true);
 
         service().handle(event);
+
+        verify(repository, never()).save(any());
+        verify(readModel, never()).save(any());
+        verify(kafka, never()).send(any(), any(), any());
+    }
+
+    private static RingDetected ring() {
+        return new RingDetected(
+                "RING-A-B-C",
+                List.of("A", "B", "C"),
+                85,
+                "A -> B -> C -> A",
+                3,
+                Instant.parse("2026-02-02T00:00:00Z"));
+    }
+
+    @Test
+    void ringDetected_raisesHighAlert_projects_andPublishes() {
+        RingDetected event = ring();
+        when(repository.existsByDedupeKey("RING-A-B-C")).thenReturn(false);
+        when(repository.save(any(AlertEntity.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        service().handleRing(event);
+
+        ArgumentCaptor<AlertEntity> saved = ArgumentCaptor.forClass(AlertEntity.class);
+        verify(repository).save(saved.capture());
+        assertThat(saved.getValue().getAlertType()).isEqualTo(AlertEntity.Type.RING);
+        assertThat(saved.getValue().getDedupeKey()).isEqualTo("RING-A-B-C");
+        assertThat(saved.getValue().getScore()).isEqualTo(85);
+        assertThat(saved.getValue().getTransactionId()).isNull();
+
+        // Read model is projected with a HIGH severity bucket (score 85 >= 80).
+        ArgumentCaptor<AlertView> projected = ArgumentCaptor.forClass(AlertView.class);
+        verify(readModel).save(projected.capture());
+        assertThat(projected.getValue().getSeverity()).isEqualTo(AlertView.Severity.HIGH);
+        assertThat(projected.getValue().getReasons()).first().asString().contains("MULE_RING");
+
+        verify(kafka).send(eq(Topics.ALERTS_RAISED), eq("A"), any(AlertRaised.class));
+    }
+
+    @Test
+    void replayedRing_isIdempotentNoOp_andProducesNoDuplicate() {
+        RingDetected event = ring();
+        // The ring was already alerted: the unified dedupe_key guard short-circuits the replay.
+        when(repository.existsByDedupeKey("RING-A-B-C")).thenReturn(true);
+
+        service().handleRing(event);
 
         verify(repository, never()).save(any());
         verify(readModel, never()).save(any());
