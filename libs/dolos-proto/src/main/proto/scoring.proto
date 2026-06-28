@@ -1,0 +1,48 @@
+syntax = "proto3";
+
+// The synchronous scoring contract (Phase 2C). The Kafka RiskScored event stays lightweight; full
+// rule-hit detail is fetched on demand over gRPC. alert-service calls GetScoreDetails when persisting
+// an alert; Score is an on-demand re-score of a supplied transaction.
+package dolos.scoring.v1;
+
+option java_multiple_files = true;
+option java_package = "com.dolos.proto.scoring";
+option java_outer_classname = "ScoringProto";
+
+service ScoringService {
+  // Look up the detail of a transaction scoring-service has already scored, by transaction id.
+  rpc GetScoreDetails(ScoreDetailRequest) returns (ScoreDetail);
+  // Score a supplied transaction on demand (no historical window state).
+  rpc Score(Transaction) returns (RiskScore);
+}
+
+message ScoreDetailRequest {
+  string transaction_id = 1;
+}
+
+message ScoreDetail {
+  string transaction_id = 1;
+  string account_id = 2;
+  int32 score = 3;
+  repeated string reasons = 4;
+  string summary = 5;
+  // false when scoring-service has no record of this transaction (e.g. evicted from its cache).
+  bool found = 6;
+}
+
+message Transaction {
+  string transaction_id = 1;
+  string account_id = 2;
+  string amount = 3; // decimal carried as a string to avoid float drift
+  string currency = 4;
+  string direction = 5;
+  string country = 6;
+  string counterparty_account_id = 7;
+}
+
+message RiskScore {
+  string transaction_id = 1;
+  string account_id = 2;
+  int32 score = 3;
+  repeated string reasons = 4;
+}
