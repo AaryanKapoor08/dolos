@@ -83,6 +83,8 @@ class ScoringTopologyTest {
                         "CREDIT",
                         "feed",
                         country,
+                        null,
+                        null,
                         occurredAt,
                         occurredAt.plusSeconds(1));
         input.pipeInput(account, txn, occurredAt.toEpochMilli());

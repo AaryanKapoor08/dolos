@@ -23,4 +23,6 @@ public record IngestTransactionRequest(
         @NotBlank @Pattern(regexp = "DEBIT|CREDIT", message = "must be DEBIT or CREDIT") String direction,
         String description,
         @Pattern(regexp = "[A-Z]{2}", message = "must be an ISO-3166 alpha-2 country code") String country,
+        String customerId,
+        String deviceId,
         @NotNull Instant occurredAt) {}

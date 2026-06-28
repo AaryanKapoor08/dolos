@@ -57,6 +57,8 @@ public class IngestionService {
                         raw.getDirection(),
                         raw.getDescription(),
                         raw.getCountry(),
+                        raw.getCustomerId(),
+                        raw.getDeviceId(),
                         raw.getOccurredAt(),
                         raw.getReceivedAt());
         // Key by account id for per-account partition ordering. send() returns a CompletableFuture;

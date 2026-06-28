@@ -43,6 +43,12 @@ public class RawTransaction {
     @Column("country")
     private final String country;
 
+    @Column("customer_id")
+    private final String customerId;
+
+    @Column("device_id")
+    private final String deviceId;
+
     @Column("occurred_at")
     private final Instant occurredAt;
 
@@ -61,6 +67,8 @@ public class RawTransaction {
             String direction,
             String description,
             String country,
+            String customerId,
+            String deviceId,
             Instant occurredAt,
             Instant receivedAt,
             String status) {
@@ -72,6 +80,8 @@ public class RawTransaction {
         this.direction = direction;
         this.description = description;
         this.country = country;
+        this.customerId = customerId;
+        this.deviceId = deviceId;
         this.occurredAt = occurredAt;
         this.receivedAt = receivedAt;
         this.status = status;
@@ -88,6 +98,8 @@ public class RawTransaction {
                 req.direction(),
                 req.description(),
                 req.country(),
+                req.customerId(),
+                req.deviceId(),
                 req.occurredAt(),
                 receivedAt,
                 "RECEIVED");
@@ -123,6 +135,14 @@ public class RawTransaction {
 
     public String getCountry() {
         return country;
+    }
+
+    public String getCustomerId() {
+        return customerId;
+    }
+
+    public String getDeviceId() {
+        return deviceId;
     }
 
     public Instant getOccurredAt() {

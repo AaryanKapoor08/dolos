@@ -45,6 +45,8 @@ class IngestionServiceTest {
                         "CREDIT",
                         "structuring test",
                         "CA",
+                        "CUST-1",
+                        "DEV-1",
                         Instant.parse("2026-06-16T20:00:00Z"));
 
         // Template echoes back whatever it is asked to insert.

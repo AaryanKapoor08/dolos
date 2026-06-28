@@ -23,6 +23,12 @@ import java.util.UUID;
  * @param country              ISO-3166 alpha-2 country the transaction originated in, may be
  *                             {@code null}. Carried so stateful scoring (Phase 2A) can track an
  *                             account's last-seen location for the impossible-travel typology.
+ * @param customerId           the customer that owns the subject account, may be {@code null}.
+ *                             Carried so graph-service (Phase 2D) can MERGE a
+ *                             {@code (:Customer)-[:OWNS]->(:Account)} edge.
+ * @param deviceId             the device the transaction was made from, may be {@code null}.
+ *                             Carried so graph-service (Phase 2D) can MERGE a
+ *                             {@code (:Account)-[:USED]->(:Device)} edge.
  * @param occurredAt           when the transaction took place
  * @param receivedAt           when ingestion observed it
  */
@@ -35,6 +41,8 @@ public record TransactionReceived(
         String direction,
         String description,
         String country,
+        String customerId,
+        String deviceId,
         Instant occurredAt,
         Instant receivedAt) {
 
