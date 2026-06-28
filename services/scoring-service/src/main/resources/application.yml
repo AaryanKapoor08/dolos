@@ -22,6 +22,11 @@ spring:
 server:
   port: 8083
 
+# gRPC ScoringService (Phase 2C) — separate port from the HTTP/Actuator 8083.
+dolos:
+  grpc:
+    port: 9090
+
 management:
   endpoints:
     web:

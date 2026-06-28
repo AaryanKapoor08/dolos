@@ -3,6 +3,7 @@ package com.dolos.scoring.streams;
 import com.dolos.events.RiskScored;
 import com.dolos.events.TransactionReceived;
 import com.dolos.scoring.service.RiskScoringEngine;
+import com.dolos.scoring.service.ScoreCache;
 import com.dolos.scoring.service.ScoringFact;
 import java.math.BigDecimal;
 import java.time.Duration;
@@ -44,6 +45,7 @@ public class ScoringProcessor implements Processor<String, TransactionReceived, 
     private static final String DEBIT = "DEBIT";
 
     private final RiskScoringEngine engine;
+    private final ScoreCache scoreCache;
 
     private ProcessorContext<String, RiskScored> context;
     private WindowStore<String, BigDecimal> velocityStore;
@@ -51,8 +53,9 @@ public class ScoringProcessor implements Processor<String, TransactionReceived, 
     private KeyValueStore<String, LastSeen> lastSeenStore;
     private KeyValueStore<String, Boolean> payeeStore;
 
-    public ScoringProcessor(RiskScoringEngine engine) {
+    public ScoringProcessor(RiskScoringEngine engine, ScoreCache scoreCache) {
         this.engine = engine;
+        this.scoreCache = scoreCache;
     }
 
     @Override
@@ -102,6 +105,9 @@ public class ScoringProcessor implements Processor<String, TransactionReceived, 
                         newPayee);
 
         RiskScored scored = engine.score(fact);
+        // Cache the detail before forwarding so a synchronous GetScoreDetails callback (e.g. from
+        // alert-service reacting to the RiskScored we are about to emit) finds it.
+        scoreCache.put(scored);
         context.forward(record.withValue(scored));
     }
 

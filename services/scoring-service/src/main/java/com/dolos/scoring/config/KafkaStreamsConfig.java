@@ -1,6 +1,7 @@
 package com.dolos.scoring.config;
 
 import com.dolos.scoring.service.RiskScoringEngine;
+import com.dolos.scoring.service.ScoreCache;
 import com.dolos.scoring.streams.ScoringTopology;
 import org.apache.kafka.streams.StreamsBuilder;
 import org.springframework.context.annotation.Bean;
@@ -21,8 +22,10 @@ import org.springframework.kafka.annotation.EnableKafkaStreams;
 public class KafkaStreamsConfig {
 
     @Bean
-    public ScoringTopology scoringTopology(StreamsBuilder builder, RiskScoringEngine engine) {
-        ScoringTopology topology = new ScoringTopology(engine, ScoringTopology.headerlessMapper());
+    public ScoringTopology scoringTopology(
+            StreamsBuilder builder, RiskScoringEngine engine, ScoreCache scoreCache) {
+        ScoringTopology topology =
+                new ScoringTopology(engine, scoreCache, ScoringTopology.headerlessMapper());
         topology.buildPipeline(builder);
         return topology;
     }

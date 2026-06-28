@@ -12,6 +12,9 @@ plugins {
 
 dependencies {
     implementation(project(":libs:dolos-events"))
+    // Synchronous scoring contract (Phase 2C): scoring-service implements the gRPC ScoringService.
+    implementation(project(":libs:dolos-proto"))
+    runtimeOnly("io.grpc:grpc-netty-shaded:1.68.1")
 
     // Web is present only so Actuator can serve /actuator/health over HTTP (compose healthcheck).
     implementation("org.springframework.boot:spring-boot-starter-web")

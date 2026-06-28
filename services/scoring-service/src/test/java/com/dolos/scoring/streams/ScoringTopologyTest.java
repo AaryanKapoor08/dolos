@@ -6,6 +6,7 @@ import com.dolos.events.RiskScored;
 import com.dolos.events.Topics;
 import com.dolos.events.TransactionReceived;
 import com.dolos.scoring.service.RiskScoringEngine;
+import com.dolos.scoring.service.ScoreCache;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.math.BigDecimal;
 import java.time.Duration;
@@ -45,7 +46,7 @@ class ScoringTopologyTest {
     @BeforeEach
     void setUp(@TempDir Path stateDir) {
         StreamsBuilder builder = new StreamsBuilder();
-        new ScoringTopology(new RiskScoringEngine(), mapper).buildPipeline(builder);
+        new ScoringTopology(new RiskScoringEngine(), new ScoreCache(), mapper).buildPipeline(builder);
         Topology topology = builder.build();
 
         Properties props = new Properties();

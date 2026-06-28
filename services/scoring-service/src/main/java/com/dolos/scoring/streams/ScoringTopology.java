@@ -4,6 +4,7 @@ import com.dolos.events.RiskScored;
 import com.dolos.events.Topics;
 import com.dolos.events.TransactionReceived;
 import com.dolos.scoring.service.RiskScoringEngine;
+import com.dolos.scoring.service.ScoreCache;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.math.BigDecimal;
 import org.apache.kafka.common.serialization.Serde;
@@ -30,10 +31,12 @@ import org.apache.kafka.streams.state.Stores;
 public class ScoringTopology {
 
     private final RiskScoringEngine engine;
+    private final ScoreCache scoreCache;
     private final ObjectMapper mapper;
 
-    public ScoringTopology(RiskScoringEngine engine, ObjectMapper mapper) {
+    public ScoringTopology(RiskScoringEngine engine, ScoreCache scoreCache, ObjectMapper mapper) {
         this.engine = engine;
+        this.scoreCache = scoreCache;
         this.mapper = mapper;
     }
 
@@ -76,7 +79,7 @@ public class ScoringTopology {
 
         builder.stream(Topics.TRANSACTIONS_RECEIVED, Consumed.with(keySerde, txnSerde))
                 .process(
-                        () -> new ScoringProcessor(engine),
+                        () -> new ScoringProcessor(engine, scoreCache),
                         ScoringProcessor.VELOCITY_STORE,
                         ScoringProcessor.STRUCTURING_STORE,
                         ScoringProcessor.LAST_SEEN_STORE,

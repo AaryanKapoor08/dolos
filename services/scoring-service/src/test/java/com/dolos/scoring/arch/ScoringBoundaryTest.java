@@ -26,5 +26,5 @@ class ScoringBoundaryTest {
                     .resideInAPackage("..service..")
                     .should()
                     .dependOnClassesThat()
-                    .resideInAnyPackage("..streams..", "..config..");
+                    .resideInAnyPackage("..streams..", "..config..", "..grpc..");
 }
