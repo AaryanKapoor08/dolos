@@ -1,5 +1,6 @@
 package com.dolos.alert.config;
 
+import com.dolos.events.RingDetected;
 import com.dolos.events.RiskScored;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -9,6 +10,7 @@ import java.util.HashMap;
 import java.util.Map;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.serialization.StringDeserializer;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -74,6 +76,50 @@ public class KafkaConsumerConfig {
 
         // Run the listener on a virtual thread (see class javadoc).
         SimpleAsyncTaskExecutor executor = new SimpleAsyncTaskExecutor("alert-consumer-");
+        executor.setVirtualThreads(true);
+        factory.getContainerProperties().setListenerTaskExecutor(executor);
+
+        return factory;
+    }
+
+    // --- RingDetected consumer (Phase 2E) ---------------------------------------------------------
+    // A second factory pair typed to RingDetected, on the same own group, draining the backlog so a
+    // ring detected before this service restarted still escalates. Same header-less-JSON +
+    // ErrorHandlingDeserializer + bounded-retry conventions as the RiskScored path above.
+
+    @Bean
+    public ConsumerFactory<String, RingDetected> ringConsumerFactory(
+            @Value("${spring.kafka.bootstrap-servers}") String bootstrapServers,
+            @Value("${spring.kafka.consumer.group-id}") String groupId) {
+        Map<String, Object> config = new HashMap<>();
+        config.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
+        config.put(ConsumerConfig.GROUP_ID_CONFIG, groupId);
+        config.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
+        config.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, false);
+
+        ObjectMapper mapper =
+                JsonMapper.builder()
+                        .addModule(new JavaTimeModule())
+                        .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
+                        .build();
+        JsonDeserializer<RingDetected> jsonDeserializer =
+                new JsonDeserializer<>(RingDetected.class, mapper, false);
+        jsonDeserializer.addTrustedPackages("com.dolos.events");
+
+        return new DefaultKafkaConsumerFactory<>(
+                config, new StringDeserializer(), new ErrorHandlingDeserializer<>(jsonDeserializer));
+    }
+
+    @Bean
+    public ConcurrentKafkaListenerContainerFactory<String, RingDetected>
+            ringKafkaListenerContainerFactory(
+                    @Qualifier("ringConsumerFactory") ConsumerFactory<String, RingDetected> consumerFactory) {
+        ConcurrentKafkaListenerContainerFactory<String, RingDetected> factory =
+                new ConcurrentKafkaListenerContainerFactory<>();
+        factory.setConsumerFactory(consumerFactory);
+        factory.setCommonErrorHandler(new DefaultErrorHandler(new FixedBackOff(1000L, 3L)));
+
+        SimpleAsyncTaskExecutor executor = new SimpleAsyncTaskExecutor("alert-ring-consumer-");
         executor.setVirtualThreads(true);
         factory.getContainerProperties().setListenerTaskExecutor(executor);
 

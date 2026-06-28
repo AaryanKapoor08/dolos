@@ -12,6 +12,7 @@ public final class AlertMapper {
     public static AlertResponse toResponse(AlertEntity e) {
         return new AlertResponse(
                 e.getId(),
+                e.getAlertType().name(),
                 e.getTransactionId(),
                 AccountId.of(e.getAccountId()),
                 e.getScore(),

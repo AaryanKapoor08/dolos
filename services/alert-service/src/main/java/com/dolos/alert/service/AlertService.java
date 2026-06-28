@@ -7,9 +7,11 @@ import com.dolos.alert.grpc.ScoreDetailClient;
 import com.dolos.alert.grpc.ScoreDetailView;
 import com.dolos.alert.repo.AlertRepository;
 import com.dolos.events.AlertRaised;
+import com.dolos.events.RingDetected;
 import com.dolos.events.RiskScored;
 import com.dolos.events.Topics;
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -104,7 +106,7 @@ public class AlertService {
         // returns (a real detail, or the "details unavailable" fallback) even if scoring is down.
         ScoreDetailView detail = scoreDetailClient.getScoreDetails(scored.transactionId());
         AlertEntity entity =
-                new AlertEntity(
+                AlertEntity.forTransaction(
                         UUID.randomUUID(),
                         scored.transactionId(),
                         scored.accountId(),
@@ -119,6 +121,51 @@ public class AlertService {
             // The unique constraint on transaction_id held the line — treat it as the no-op it is.
             return null;
         }
+    }
+
+    /**
+     * Handles a detected graph ring (Phase 2E): raises a HIGH-severity alert that no single-transaction
+     * rule could surface. Idempotent on the ringId — replaying {@code RingDetected} (or the same ring
+     * found from a different account) never produces a duplicate.
+     */
+    public void handleRing(RingDetected ring) {
+        if (repository.existsByDedupeKey(ring.ringId())) {
+            log.debug("Alert already exists for ring {} — idempotent skip", ring.ringId());
+            return;
+        }
+        AlertEntity entity =
+                AlertEntity.forRing(
+                        UUID.randomUUID(),
+                        ring.ringId(),
+                        ring.accounts().isEmpty() ? "UNKNOWN" : ring.accounts().get(0),
+                        ring.score(),
+                        List.of("MULE_RING: " + ring.pattern()),
+                        "mule ring across " + ring.accounts().size() + " accounts (" + ring.hops() + " hops)",
+                        Instant.now());
+        try {
+            repository.save(entity);
+        } catch (DataIntegrityViolationException duplicate) {
+            // A redelivery racing the existsByDedupeKey check already inserted this ring alert.
+            log.debug("Ring alert for {} already inserted concurrently — idempotent skip", ring.ringId());
+            return;
+        }
+        AlertRaised event =
+                new AlertRaised(
+                        entity.getId(),
+                        // AlertRaised requires a non-null transactionId; a ring has none, so we reuse
+                        // the alert id to keep the downstream contract satisfied without inventing a txn.
+                        entity.getId(),
+                        entity.getAccountId(),
+                        entity.getScore(),
+                        entity.getReasons(),
+                        entity.getRaisedAt());
+        kafka.send(Topics.ALERTS_RAISED, event.accountId(), event);
+        log.info(
+                "Raised RING alert {} for ring {} (accounts {}, score {})",
+                entity.getId(),
+                ring.ringId(),
+                ring.accounts(),
+                ring.score());
     }
 
     /** Paged, risk-sorted view of raised alerts for the analyst queue. */

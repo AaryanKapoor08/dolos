@@ -10,7 +10,8 @@ import java.util.UUID;
  * dolos-common so the API never leaks the JPA entity.
  *
  * @param alertId       stable id of the alert
- * @param transactionId the transaction that triggered it
+ * @param alertType     what triggered it: {@code TRANSACTION} or {@code RING} (Phase 2E)
+ * @param transactionId the transaction that triggered it ({@code null} for ring alerts)
  * @param account       the subject account
  * @param score         the risk score that crossed the threshold
  * @param reasons       human-readable reasons carried from scoring
@@ -19,6 +20,7 @@ import java.util.UUID;
  */
 public record AlertResponse(
         UUID alertId,
+        String alertType,
         UUID transactionId,
         AccountId account,
         int score,
