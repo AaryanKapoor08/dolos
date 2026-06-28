@@ -99,6 +99,39 @@ services:
     networks:
       - dolos
 
+  # Fraud graph (Phase 2D): consumes TransactionReceived, MERGEs the account/customer/device graph
+  # into Neo4j, serves GET /api/graph/account/{id}/neighborhood, and (Phase 2E) detects mule rings,
+  # publishing RingDetected. Needs Neo4j + the broker.
+  graph-service:
+    build:
+      context: ../..
+      dockerfile: services/graph-service/Dockerfile
+    image: dolos/graph-service:0.0.1-SNAPSHOT
+    container_name: dolos-graph-service
+    restart: unless-stopped
+    depends_on:
+      neo4j:
+        condition: service_healthy
+      redpanda:
+        condition: service_healthy
+    ports:
+      - "8085:8085"
+    environment:
+      # Reach Neo4j by its compose DNS name on the shared `dolos` network.
+      SPRING_NEO4J_URI: bolt://neo4j:7687
+      SPRING_NEO4J_AUTHENTICATION_USERNAME: neo4j
+      SPRING_NEO4J_AUTHENTICATION_PASSWORD: ${NEO4J_PASSWORD:-dolosgraph}
+      # Consume TransactionReceived / produce RingDetected over the broker's internal listener.
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: redpanda:9092
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8085/actuator/health | grep -q '\"status\":\"UP\"' || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 40s
+    networks:
+      - dolos
+
   # Alerting (Phase 1E): consumes RiskScored, persists an Alert (own `alert` schema) when a score
   # crosses the threshold, publishes AlertRaised, and serves GET /api/alerts. Needs Postgres + broker.
   alert-service:

@@ -1,0 +1,50 @@
+spring:
+  application:
+    name: graph-service
+  threads:
+    virtual:
+      # Java 21 virtual threads for request handling + the blocking Kafka/Bolt consumer path.
+      enabled: true
+  neo4j:
+    # Host default (Neo4j Bolt); the container overrides via SPRING_NEO4J_* (see services.yml).
+    uri: bolt://localhost:7687
+    authentication:
+      username: neo4j
+      password: dolosgraph
+  kafka:
+    # Host default (Redpanda external listener); container overrides via SPRING_KAFKA_BOOTSTRAP_SERVERS.
+    bootstrap-servers: localhost:19092
+    consumer:
+      # Own group, earliest: graph-service drains the topic backlog the first time it runs so the
+      # graph reflects transactions received before this service existed.
+      group-id: graph-service
+
+# Ring detection policy (Phase 2E): find directed TRANSACTED chains of this many hops that return
+# to the origin account (A->B->C->...->A) — a classic layered cash-out / mule ring.
+dolos:
+  graph:
+    ring:
+      min-length: 2
+      max-length: 6
+      # A detected ring publishes RingDetected with this score so alert-service can escalate.
+      score: 85
+
+server:
+  port: 8085
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: always
+  info:
+    env:
+      enabled: true
+
+info:
+  app:
+    name: ${spring.application.name}
+    phase: "2D"
