@@ -36,5 +36,5 @@ COPY --from=extract /app/extracted/spring-boot-loader/ ./
 COPY --from=extract /app/extracted/snapshot-dependencies/ ./
 COPY --from=extract /app/extracted/application/ ./
 USER dolos
-EXPOSE 8083
+EXPOSE 8083 9090
 ENTRYPOINT ["java", "org.springframework.boot.loader.launch.JarLauncher"]

@@ -42,4 +42,4 @@ management:
 info:
   app:
     name: ${spring.application.name}
-    phase: "2A"
+    phase: "2C"
