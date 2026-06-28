@@ -39,6 +39,30 @@ spring:
 dolos:
   alert:
     score-threshold: 60
+  scoring:
+    grpc:
+      # Host default; the container overrides to scoring-service:9090 (see services.yml).
+      target: localhost:9090
+      # Per-call gRPC deadline — the "timeout" leg of the resilience wrap.
+      deadline-ms: 500
+
+# Resilience4j around the synchronous scoring gRPC call (Phase 2C): retry transient failures, and
+# trip a circuit breaker so a scoring outage falls back fast to "details unavailable".
+resilience4j:
+  circuitbreaker:
+    instances:
+      scoring:
+        sliding-window-size: 10
+        minimum-number-of-calls: 5
+        failure-rate-threshold: 50
+        wait-duration-in-open-state: 10s
+        permitted-number-of-calls-in-half-open-state: 3
+        register-health-indicator: true
+  retry:
+    instances:
+      scoring:
+        max-attempts: 3
+        wait-duration: 200ms
 
 server:
   port: 8084
@@ -58,4 +82,4 @@ management:
 info:
   app:
     name: ${spring.application.name}
-    phase: "1E"
+    phase: "2C"

@@ -8,6 +8,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.dolos.alert.domain.AlertEntity;
+import com.dolos.alert.grpc.ScoreDetailClient;
+import com.dolos.alert.grpc.ScoreDetailView;
 import com.dolos.alert.repo.AlertRepository;
 import com.dolos.events.AlertRaised;
 import com.dolos.events.RiskScored;
@@ -28,12 +30,13 @@ class AlertServiceTest {
     private static final int THRESHOLD = 60;
 
     @Mock private AlertRepository repository;
+    @Mock private ScoreDetailClient scoreDetailClient;
 
     @SuppressWarnings("unchecked")
     private final KafkaTemplate<String, Object> kafka = (KafkaTemplate<String, Object>) org.mockito.Mockito.mock(KafkaTemplate.class);
 
     private AlertService service() {
-        return new AlertService(repository, kafka, THRESHOLD);
+        return new AlertService(repository, kafka, scoreDetailClient, THRESHOLD);
     }
 
     private static RiskScored scored(int score) {
@@ -50,6 +53,8 @@ class AlertServiceTest {
         RiskScored event = scored(60);
         when(repository.existsByTransactionId(event.transactionId())).thenReturn(false);
         when(repository.save(any(AlertEntity.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(scoreDetailClient.getScoreDetails(event.transactionId()))
+                .thenReturn(new ScoreDetailView(true, "1 rule(s) fired"));
 
         service().handle(event);
 
@@ -57,6 +62,7 @@ class AlertServiceTest {
         verify(repository).save(saved.capture());
         assertThat(saved.getValue().getTransactionId()).isEqualTo(event.transactionId());
         assertThat(saved.getValue().getScore()).isEqualTo(60);
+        assertThat(saved.getValue().getDetail()).isEqualTo("1 rule(s) fired");
 
         ArgumentCaptor<Object> published = ArgumentCaptor.forClass(Object.class);
         verify(kafka).send(eq(Topics.ALERTS_RAISED), eq("ACC-1"), published.capture());

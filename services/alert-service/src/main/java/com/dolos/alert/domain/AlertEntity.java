@@ -39,6 +39,10 @@ public class AlertEntity {
     @Column(nullable = false, columnDefinition = "text")
     private List<String> reasons;
 
+    /** Score detail fetched synchronously from scoring-service over gRPC (Phase 2C); may be a fallback. */
+    @Column(name = "detail")
+    private String detail;
+
     @Column(name = "raised_at", nullable = false, updatable = false)
     private Instant raisedAt;
 
@@ -51,12 +55,14 @@ public class AlertEntity {
             String accountId,
             int score,
             List<String> reasons,
+            String detail,
             Instant raisedAt) {
         this.id = id;
         this.transactionId = transactionId;
         this.accountId = accountId;
         this.score = score;
         this.reasons = reasons;
+        this.detail = detail;
         this.raisedAt = raisedAt;
     }
 
@@ -78,6 +84,10 @@ public class AlertEntity {
 
     public List<String> getReasons() {
         return reasons;
+    }
+
+    public String getDetail() {
+        return detail;
     }
 
     public Instant getRaisedAt() {

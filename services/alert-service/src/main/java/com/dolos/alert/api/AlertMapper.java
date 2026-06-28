@@ -16,6 +16,7 @@ public final class AlertMapper {
                 AccountId.of(e.getAccountId()),
                 e.getScore(),
                 e.getReasons(),
+                e.getDetail(),
                 e.getRaisedAt());
     }
 }

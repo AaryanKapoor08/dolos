@@ -3,6 +3,8 @@ package com.dolos.alert.service;
 import com.dolos.alert.api.AlertMapper;
 import com.dolos.alert.api.dto.AlertResponse;
 import com.dolos.alert.domain.AlertEntity;
+import com.dolos.alert.grpc.ScoreDetailClient;
+import com.dolos.alert.grpc.ScoreDetailView;
 import com.dolos.alert.repo.AlertRepository;
 import com.dolos.events.AlertRaised;
 import com.dolos.events.RiskScored;
@@ -35,14 +37,17 @@ public class AlertService {
 
     private final AlertRepository repository;
     private final KafkaTemplate<String, Object> kafka;
+    private final ScoreDetailClient scoreDetailClient;
     private final int scoreThreshold;
 
     public AlertService(
             AlertRepository repository,
             KafkaTemplate<String, Object> kafka,
+            ScoreDetailClient scoreDetailClient,
             @Value("${dolos.alert.score-threshold}") int scoreThreshold) {
         this.repository = repository;
         this.kafka = kafka;
+        this.scoreDetailClient = scoreDetailClient;
         this.scoreThreshold = scoreThreshold;
     }
 
@@ -95,6 +100,9 @@ public class AlertService {
         if (repository.existsByTransactionId(scored.transactionId())) {
             return null;
         }
+        // Synchronously enrich with the full score detail over gRPC; Resilience4j guarantees this
+        // returns (a real detail, or the "details unavailable" fallback) even if scoring is down.
+        ScoreDetailView detail = scoreDetailClient.getScoreDetails(scored.transactionId());
         AlertEntity entity =
                 new AlertEntity(
                         UUID.randomUUID(),
@@ -102,6 +110,7 @@ public class AlertService {
                         scored.accountId(),
                         scored.score(),
                         scored.reasons(),
+                        detail.summary(),
                         Instant.now());
         try {
             return repository.save(entity);

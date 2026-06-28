@@ -14,6 +14,7 @@ import java.util.UUID;
  * @param account       the subject account
  * @param score         the risk score that crossed the threshold
  * @param reasons       human-readable reasons carried from scoring
+ * @param detail        score detail fetched from scoring-service over gRPC (or a fallback)
  * @param raisedAt      when the alert was raised
  */
 public record AlertResponse(
@@ -22,4 +23,5 @@ public record AlertResponse(
         AccountId account,
         int score,
         List<String> reasons,
+        String detail,
         Instant raisedAt) {}
