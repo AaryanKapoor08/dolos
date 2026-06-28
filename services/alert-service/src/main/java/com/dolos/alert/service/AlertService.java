@@ -6,6 +6,7 @@ import com.dolos.alert.domain.AlertEntity;
 import com.dolos.alert.grpc.ScoreDetailClient;
 import com.dolos.alert.grpc.ScoreDetailView;
 import com.dolos.alert.repo.AlertRepository;
+import com.dolos.alert.repo.AlertViewRepository;
 import com.dolos.events.AlertRaised;
 import com.dolos.events.RingDetected;
 import com.dolos.events.RiskScored;
@@ -38,16 +39,22 @@ public class AlertService {
     private static final Logger log = LoggerFactory.getLogger(AlertService.class);
 
     private final AlertRepository repository;
+    private final AlertViewRepository readModel;
+    private final AlertProjector projector;
     private final KafkaTemplate<String, Object> kafka;
     private final ScoreDetailClient scoreDetailClient;
     private final int scoreThreshold;
 
     public AlertService(
             AlertRepository repository,
+            AlertViewRepository readModel,
+            AlertProjector projector,
             KafkaTemplate<String, Object> kafka,
             ScoreDetailClient scoreDetailClient,
             @Value("${dolos.alert.score-threshold}") int scoreThreshold) {
         this.repository = repository;
+        this.readModel = readModel;
+        this.projector = projector;
         this.kafka = kafka;
         this.scoreDetailClient = scoreDetailClient;
         this.scoreThreshold = scoreThreshold;
@@ -73,6 +80,9 @@ public class AlertService {
                     "Alert already exists for txn {} — idempotent skip", scored.transactionId());
             return;
         }
+
+        // Project the new write-model row into the CQRS read model that serves the queue (Phase 2F).
+        projector.project(persisted);
 
         AlertRaised event =
                 new AlertRaised(
@@ -149,6 +159,10 @@ public class AlertService {
             log.debug("Ring alert for {} already inserted concurrently — idempotent skip", ring.ringId());
             return;
         }
+
+        // Project the new write-model row into the CQRS read model that serves the queue (Phase 2F).
+        projector.project(entity);
+
         AlertRaised event =
                 new AlertRaised(
                         entity.getId(),
@@ -168,9 +182,17 @@ public class AlertService {
                 ring.score());
     }
 
-    /** Paged, risk-sorted view of raised alerts for the analyst queue. */
+    /**
+     * Paged, risk-sorted analyst queue, served from the CQRS read model (Phase 2F) — denormalized and
+     * index-backed, so the queue scan needs no joins. Honours an explicit {@code sort} from the
+     * caller; otherwise falls back to the read model's native highest-risk-first, newest-first order.
+     */
     @Transactional(readOnly = true)
     public Page<AlertResponse> findAlerts(Pageable pageable) {
-        return repository.findAll(pageable).map(AlertMapper::toResponse);
+        Page<com.dolos.alert.domain.AlertView> page =
+                pageable.getSort().isSorted()
+                        ? readModel.findAll(pageable)
+                        : readModel.findAllByOrderByScoreDescRaisedAtDesc(pageable);
+        return page.map(AlertMapper::toResponse);
     }
 }

@@ -11,6 +11,7 @@ import com.dolos.alert.domain.AlertEntity;
 import com.dolos.alert.grpc.ScoreDetailClient;
 import com.dolos.alert.grpc.ScoreDetailView;
 import com.dolos.alert.repo.AlertRepository;
+import com.dolos.alert.repo.AlertViewRepository;
 import com.dolos.events.AlertRaised;
 import com.dolos.events.RiskScored;
 import com.dolos.events.Topics;
@@ -30,13 +31,16 @@ class AlertServiceTest {
     private static final int THRESHOLD = 60;
 
     @Mock private AlertRepository repository;
+    @Mock private AlertViewRepository readModel;
     @Mock private ScoreDetailClient scoreDetailClient;
 
     @SuppressWarnings("unchecked")
     private final KafkaTemplate<String, Object> kafka = (KafkaTemplate<String, Object>) org.mockito.Mockito.mock(KafkaTemplate.class);
 
     private AlertService service() {
-        return new AlertService(repository, kafka, scoreDetailClient, THRESHOLD);
+        // Use a real projector over the mocked read-model repository so the projection path runs.
+        return new AlertService(
+                repository, readModel, new AlertProjector(readModel), kafka, scoreDetailClient, THRESHOLD);
     }
 
     private static RiskScored scored(int score) {
@@ -91,6 +95,7 @@ class AlertServiceTest {
         service().handle(event);
 
         verify(repository, never()).save(any());
+        verify(readModel, never()).save(any());
         verify(kafka, never()).send(any(), any(), any());
     }
 }

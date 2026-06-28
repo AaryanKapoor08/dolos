@@ -9,8 +9,13 @@ import java.util.UUID;
  * Outbound representation of an alert. Uses the shared {@link AccountId} value object from
  * dolos-common so the API never leaks the JPA entity.
  *
+ * <p>Served from the CQRS read model (Phase 2F), so {@code severity} and {@code title} are
+ * precomputed for the queue.
+ *
  * @param alertId       stable id of the alert
  * @param alertType     what triggered it: {@code TRANSACTION} or {@code RING} (Phase 2E)
+ * @param severity      precomputed risk bucket: {@code HIGH} / {@code MEDIUM} / {@code LOW}
+ * @param title         denormalized one-line headline for the queue
  * @param transactionId the transaction that triggered it ({@code null} for ring alerts)
  * @param account       the subject account
  * @param score         the risk score that crossed the threshold
@@ -21,6 +26,8 @@ import java.util.UUID;
 public record AlertResponse(
         UUID alertId,
         String alertType,
+        String severity,
+        String title,
         UUID transactionId,
         AccountId account,
         int score,
