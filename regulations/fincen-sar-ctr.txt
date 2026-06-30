@@ -1,0 +1,34 @@
+FinCEN — Suspicious Activity Reports and Currency Transaction Reports (United States)
+
+Source: Synthetic summary of the U.S. Bank Secrecy Act (BSA) and FinCEN regulations.
+For training/demo use only; not legal advice and not a verbatim official text.
+
+1. Currency Transaction Reports (CTRs)
+A U.S. financial institution must file a Currency Transaction Report for each cash
+transaction in currency of more than USD 10,000 conducted by, or on behalf of, one
+person in a single business day. Multiple cash transactions are aggregated and treated
+as a single transaction when the institution knows they total more than USD 10,000 and
+are by or on behalf of the same person. The CTR is threshold-based and required even
+without any suspicion.
+
+2. Suspicious Activity Reports (SARs)
+A bank must file a Suspicious Activity Report when it detects a known or suspected
+violation of federal law or a suspicious transaction related to money laundering or
+other illegal activity. General SAR dollar thresholds for banks are: USD 5,000 or more
+when a suspect can be identified; USD 25,000 or more regardless of whether a suspect can
+be identified. A SAR must generally be filed within 30 calendar days of initial
+detection of facts that constitute a basis for filing. SAR filings — and their very
+existence — are confidential; "tipping off" the subject is prohibited.
+
+3. Structuring under the BSA
+Structuring is the act of breaking up currency transactions to evade the CTR filing
+requirement — for example, making several cash deposits of USD 9,000 instead of one
+deposit of USD 18,000. Structuring is a federal crime under 31 U.S.C. 5324 whether or
+not the underlying funds are illicit. When a bank detects structuring it must file a
+SAR describing the pattern, even though no single transaction exceeded USD 10,000.
+
+4. Red flags
+- Cash transactions consistently just under USD 10,000.
+- A customer who asks about reporting thresholds or how to avoid a CTR.
+- Deposits split across multiple branches, ATMs, or accounts in a short period.
+- Sudden, unexplained activity inconsistent with the customer's known profile.

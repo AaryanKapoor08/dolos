@@ -215,15 +215,28 @@ services:
     container_name: dolos-ai-copilot-service
     restart: unless-stopped
     depends_on:
+      postgres:
+        condition: service_healthy
       ollama:
         condition: service_healthy
       ollama-init:
+        condition: service_completed_successfully
+      # Gate on the corpus being uploaded (also MinIO's readiness gate); startup ingest reads it.
+      minio-init:
         condition: service_completed_successfully
     ports:
       - "8090:8090"
     environment:
       # Reach the Ollama model server by its compose DNS name on the shared `dolos` network.
       SPRING_AI_OLLAMA_BASE_URL: http://ollama:11434
+      # Postgres (pgvector) holds the RAG vector store; Flyway owns the `copilot` schema's V1 table.
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-dolos}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-dolos}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-dolos}
+      # The RAG source corpus bucket on MinIO, reached by compose DNS.
+      DOLOS_RAG_MINIO_ENDPOINT: http://minio:9000
+      DOLOS_RAG_MINIO_ACCESS_KEY: ${MINIO_ROOT_USER:-dolos}
+      DOLOS_RAG_MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD:-dolosminio}
     healthcheck:
       test: ["CMD-SHELL", "curl -fsS http://localhost:8090/actuator/health | grep -q '\"status\":\"UP\"' || exit 1"]
       interval: 10s

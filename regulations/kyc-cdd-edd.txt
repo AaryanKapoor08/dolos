@@ -1,0 +1,35 @@
+Know Your Customer (KYC), Customer Due Diligence (CDD) and Enhanced Due Diligence (EDD)
+
+Source: Synthetic summary of common AML/KYC principles drawn from FATF Recommendations
+and typical national CDD rules. For training/demo use only; not legal advice.
+
+1. Customer Due Diligence (CDD)
+CDD is the process of identifying a customer and verifying their identity using reliable,
+independent source documents, data, or information. Reporting entities must:
+- Identify and verify the customer's identity at onboarding.
+- Identify and verify the beneficial owner — the natural person(s) who ultimately own or
+  control the customer (commonly a 25% or greater ownership threshold for legal entities).
+- Understand the intended nature and purpose of the business relationship.
+- Conduct ongoing monitoring of the relationship and scrutinise transactions to ensure
+  they are consistent with the customer's profile and source of funds.
+
+2. Enhanced Due Diligence (EDD)
+EDD applies to higher-risk customers and situations and requires additional measures,
+such as obtaining senior management approval, establishing the source of wealth and
+source of funds, and conducting enhanced ongoing monitoring. Higher-risk factors include
+Politically Exposed Persons (PEPs), customers in high-risk jurisdictions, complex or
+unusually large transactions, and ownership structures designed to obscure control.
+
+3. Politically Exposed Persons (PEPs)
+A PEP is an individual entrusted with a prominent public function. PEP status, including
+family members and close associates, raises the risk of bribery and corruption, so PEP
+relationships require EDD and senior management sign-off.
+
+4. Sanctions and watchlist screening
+Customers and counterparties must be screened against applicable sanctions lists (for
+example OFAC, UN, and national lists). A confirmed match generally requires blocking or
+rejecting the transaction and reporting as required by the relevant regime.
+
+5. Simplified Due Diligence (SDD)
+Where money laundering and terrorist financing risk is assessed as low, a reduced set of
+CDD measures may be applied — but SDD is never a complete exemption from monitoring.

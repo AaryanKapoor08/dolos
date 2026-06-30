@@ -1,0 +1,45 @@
+FINTRAC — Suspicious Transaction Reporting and Structuring (Canada)
+
+Source: Synthetic summary of Canada's Proceeds of Crime (Money Laundering) and
+Terrorist Financing Act (PCMLTFA) and FINTRAC guidance. For training/demo use only;
+not legal advice and not a verbatim reproduction of any official text.
+
+1. Suspicious Transaction Reports (STRs)
+Reporting entities (banks, money services businesses, casinos, and other regulated
+persons) must submit a Suspicious Transaction Report to FINTRAC when there are
+reasonable grounds to suspect that a transaction — or an attempted transaction — is
+related to the commission or attempted commission of a money laundering offence or a
+terrorist activity financing offence. There is no minimum dollar threshold for an STR:
+even a small or attempted transaction must be reported if suspicion is established.
+STRs must be filed as soon as practicable after the reporting entity has taken measures
+that enabled it to establish that suspicion.
+
+2. Large Cash Transaction Reports (LCTRs)
+Separately from STRs, a reporting entity must file a Large Cash Transaction Report when
+it receives CAD 10,000 or more in cash in a single transaction, or when it receives two
+or more cash amounts totalling CAD 10,000 or more within a 24-hour period from the same
+person or entity (the "24-hour rule"). The LCTR is threshold-based and is required even
+when there is no suspicion.
+
+3. Structuring
+Structuring (also called smurfing) is the deliberate breaking up of a large amount of
+cash or value into multiple smaller transactions specifically to stay below a reporting
+threshold such as the CAD 10,000 large-cash threshold, or to otherwise avoid detection.
+Structuring is itself a strong indicator of money laundering. When a reporting entity
+detects a pattern consistent with structuring — for example, repeated cash deposits just
+under CAD 10,000, deposits split across branches, accounts, or short time windows, or a
+customer asking how to avoid a report — it has reasonable grounds to suspect money
+laundering and MUST file a Suspicious Transaction Report, regardless of the fact that no
+individual transaction reached the LCTR threshold.
+
+What must be reported for structuring under FINTRAC: file a Suspicious Transaction Report
+(STR) describing the suspected structuring activity. If any single cash transaction or
+24-hour aggregate still reaches CAD 10,000, the corresponding Large Cash Transaction
+Report is also required. Reporting entities must keep records supporting the report.
+
+4. Red flags commonly associated with structuring
+- Multiple cash deposits or withdrawals just below CAD 10,000.
+- The same person conducting cash transactions at several branches the same day.
+- A customer who appears to be acting on behalf of someone else, or who is reluctant
+  to provide identification when a threshold is approached.
+- Transactions broken into round-number amounts that, in aggregate, exceed thresholds.

@@ -23,8 +23,21 @@ dependencies {
 
     // Spring AI Ollama chat model: auto-configures a ChatClient.Builder pointed at the configured
     // Ollama endpoint (spring.ai.ollama.* in application.yml). The starter also brings the embedding
-    // model auto-config used from 4B onwards.
+    // model (OllamaEmbeddingModel) used by the RAG store from 4B onwards.
     implementation(libs.spring.ai.starter.model.ollama)
+
+    // RAG ingestion (Phase 4B): pgvector vector store (auto-configures a PgVectorStore over the JDBC
+    // datasource) + Apache Tika document reader (parses regulation PDFs/text into Documents).
+    implementation(libs.spring.ai.starter.vector.store.pgvector)
+    implementation(libs.spring.ai.tika.document.reader)
+    // The vector store needs a JDBC DataSource; Flyway owns the vector table in our own `copilot` schema.
+    implementation("org.springframework.boot:spring-boot-starter-jdbc")
+    implementation("org.flywaydb:flyway-core")
+    implementation("org.flywaydb:flyway-database-postgresql")
+    runtimeOnly("org.postgresql:postgresql")
+
+    // MinIO client (Phase 4B): the RAG source corpus lives in an S3-compatible bucket.
+    implementation(libs.minio)
 
     // Structured (JSON) logging — see src/main/resources/logback-spring.xml.
     implementation(libs.logstash.logback.encoder)

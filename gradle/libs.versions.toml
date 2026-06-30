@@ -39,6 +39,7 @@ flowable = "7.1.0"
 # 1.0.0 is the first GA (May 2025) and the line that pairs with Spring Boot 3.4.x (1.1.x targets Boot
 # 3.5). The BOM aligns every spring-ai-* starter; GA renamed the starters to spring-ai-starter-*.
 springAi = "1.0.0"
+minio = "8.5.17"               # MinIO Java SDK — RAG source-document object store (Phase 4B)
 
 # Forward-looking (wired in later; verify when adopted)
 springCloud = "2024.0.0"        # Spring Cloud (Gateway/Eureka/Config); pairs with Spring Boot 3.4.x
@@ -84,6 +85,11 @@ flowable-spring-boot-starter-process = { group = "org.flowable", name = "flowabl
 # omit their own version. 4A wires the Ollama chat model; 4B+ add pgvector + tika + mcp from this BOM.
 spring-ai-bom = { group = "org.springframework.ai", name = "spring-ai-bom", version.ref = "springAi" }
 spring-ai-starter-model-ollama = { group = "org.springframework.ai", name = "spring-ai-starter-model-ollama" }
+# RAG (Phase 4B/4C): pgvector vector store + Tika document reader (PDF/text parsing). BOM-managed.
+spring-ai-starter-vector-store-pgvector = { group = "org.springframework.ai", name = "spring-ai-starter-vector-store-pgvector" }
+spring-ai-tika-document-reader = { group = "org.springframework.ai", name = "spring-ai-tika-document-reader" }
+# MinIO Java SDK (Phase 4B): read the regulation corpus objects from the S3-compatible store.
+minio = { group = "io.minio", name = "minio", version.ref = "minio" }
 
 # Forward-looking BOMs (uncomment + wire when needed)
 # spring-cloud-bom = { group = "org.springframework.cloud", name = "spring-cloud-dependencies", version.ref = "springCloud" }

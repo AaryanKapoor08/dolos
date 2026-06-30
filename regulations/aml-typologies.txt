@@ -1,0 +1,38 @@
+Money Laundering Typologies and Red-Flag Indicators
+
+Source: Synthetic summary of common AML typologies aligned with FATF and FinCEN
+guidance. For training/demo use only; not legal advice.
+
+1. The three stages of money laundering
+- Placement: introducing illicit cash into the financial system (e.g. cash deposits,
+  buying monetary instruments, co-mingling with a cash-intensive business).
+- Layering: moving funds through a series of transactions to obscure their origin
+  (e.g. wire transfers between accounts and jurisdictions, shell companies, conversion
+  into and out of assets).
+- Integration: returning laundered funds to the criminal as apparently legitimate
+  wealth (e.g. property purchases, business investments, loans to oneself).
+
+2. Common typologies
+- Smurfing / structuring: many small cash transactions kept below reporting thresholds.
+- Money mules: third parties who receive and forward funds, often recruited online,
+  used to distance the criminal from the money. Mule networks frequently appear in the
+  transaction graph as rings or fan-in/fan-out patterns around a hub account.
+- Funnel accounts: cash deposited in many locations and rapidly withdrawn elsewhere.
+- Trade-based money laundering: mis-invoicing, over/under-shipment, or phantom shipments
+  to move value across borders under cover of trade.
+- Rapid movement / pass-through: funds that arrive and leave an account within a short
+  window, leaving little or no balance.
+
+3. Behavioural and transactional red flags
+- A new account that immediately receives and forwards large sums (pass-through).
+- A web of accounts transacting in a closed loop (a ring), suggesting layering.
+- Transactions with no apparent economic or lawful purpose.
+- Activity inconsistent with the customer's known occupation, income, or history.
+- Sudden activity from a dormant account, or transactions just under reporting limits.
+- Reluctance to provide identification or beneficial-ownership information.
+
+4. Investigator response
+When these indicators appear, the analyst gathers the transaction history, examines the
+account's neighbourhood in the graph for rings or mule structures, checks the relevant
+reporting obligations, and — where suspicion is established — drafts a suspicious activity
+or suspicious transaction report for review and filing.

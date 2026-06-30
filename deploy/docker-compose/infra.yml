@@ -194,6 +194,49 @@ services:
     networks:
       - dolos
 
+  # --- Object store (Phase 4B) ----------------------------------------------------------
+  # MinIO: S3-compatible object store. Holds the RAG source corpus (regulation documents) and, from
+  # 4E, the copilot's SAR drafts. API on 9000, web console on 9001. The root password must be >= 8
+  # chars. No in-image curl/mc for a healthcheck, so readiness is gated downstream on `minio-init`.
+  minio:
+    image: minio/minio:RELEASE.2025-07-23T15-54-02Z
+    container_name: dolos-minio
+    restart: unless-stopped
+    command: ["server", "/data", "--console-address", ":9001"]
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-dolos}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-dolosminio}
+    ports:
+      - "${MINIO_API_PORT:-9000}:9000"
+      - "${MINIO_CONSOLE_PORT:-9001}:9001"
+    volumes:
+      - dolos-minio:/data
+    networks:
+      - dolos
+
+  # One-shot: create the `regulations` bucket and upload the sample corpus (mounted read-only from the
+  # repo's regulations/ folder) using the MinIO client. Retries `mc alias set` until the server is up,
+  # so it doubles as MinIO's readiness gate — downstream services depend on it completing successfully.
+  # Re-runs are cheap: `mc mb --ignore-existing` is a no-op and `mc cp` just re-uploads unchanged files.
+  minio-init:
+    image: minio/mc:RELEASE.2025-07-21T05-28-08Z
+    container_name: dolos-minio-init
+    restart: "no"
+    depends_on:
+      minio:
+        condition: service_started
+    volumes:
+      - ../../regulations:/regulations:ro
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-dolos}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-dolosminio}
+    entrypoint: ["/bin/sh", "-c"]
+    # $$VAR escapes compose interpolation so the container shell expands it from the env above.
+    command:
+      - "until mc alias set local http://minio:9000 \"$$MINIO_ROOT_USER\" \"$$MINIO_ROOT_PASSWORD\"; do echo 'waiting for minio...'; sleep 2; done && mc mb --ignore-existing local/regulations && mc cp --recursive /regulations/ local/regulations/ && echo 'minio-init done'"
+    networks:
+      - dolos
+
 # Shared network so later services (transaction-service, etc.) reach Postgres by the
 # DNS name `postgres`. Named `dolos` so other compose files can attach to it as external.
 networks:
@@ -210,3 +253,5 @@ volumes:
     name: dolos-neo4j
   dolos-ollama:
     name: dolos-ollama
+  dolos-minio:
+    name: dolos-minio

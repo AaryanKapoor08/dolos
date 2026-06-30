@@ -5,6 +5,18 @@ spring:
     virtual:
       # Java 21 virtual threads: chat requests block on the (slow) local model call.
       enabled: true
+  datasource:
+    # The RAG vector store lives in Postgres (pgvector). Host default; the container overrides via
+    # SPRING_DATASOURCE_* (see services.yml). Flyway reuses this datasource for its migrations.
+    url: jdbc:postgresql://localhost:5432/dolos
+    username: dolos
+    password: dolos
+  flyway:
+    enabled: true
+    # Own schema so this service shares the `dolos` database without colliding with the others.
+    schemas: copilot
+    default-schema: copilot
+    locations: classpath:db/migration
   ai:
     ollama:
       # Host default; the container overrides via SPRING_AI_OLLAMA_BASE_URL (see services.yml).
@@ -24,8 +36,31 @@ spring:
           temperature: 0.2
       embedding:
         options:
-          # Wired now so the RAG ingestion (4B) finds it ready; nomic-embed-text = 768 dimensions.
+          # The RAG ingestion (4B) embeds chunks with this model; nomic-embed-text = 768 dimensions,
+          # which MUST match the vector(768) column in V1__vector_store.sql.
           model: ${OLLAMA_EMBED_MODEL:nomic-embed-text}
+    vectorstore:
+      pgvector:
+        # Flyway owns the vector table (V1) — never let Spring AI auto-create it (house rule).
+        initialize-schema: false
+        schema-name: copilot
+        table-name: vector_store
+        dimensions: 768
+        distance-type: COSINE_DISTANCE
+        index-type: HNSW
+
+# Dolos RAG configuration (Phase 4B): the regulation corpus lives in an S3-compatible MinIO bucket;
+# ingestion reads every object, parses it with Tika, chunks + embeds it, and stores vectors in pgvector.
+dolos:
+  rag:
+    minio:
+      # Host default; the container overrides via DOLOS_RAG_MINIO_* (see services.yml).
+      endpoint: http://localhost:9000
+      access-key: ${MINIO_ROOT_USER:dolos}
+      secret-key: ${MINIO_ROOT_PASSWORD:dolosminio}
+      bucket: regulations
+    # Ingest the corpus on startup only when the store is empty; POST /api/copilot/ingest forces a reload.
+    ingest-on-startup: true
 
 server:
   port: 8090
@@ -45,4 +80,4 @@ management:
 info:
   app:
     name: ${spring.application.name}
-    phase: "4A"
+    phase: "4B"
