@@ -3,6 +3,7 @@ package com.dolos.transaction.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -15,9 +16,12 @@ import com.dolos.transaction.domain.TransactionEntity;
 import com.dolos.transaction.repo.TransactionRepository;
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.mockito.ArgumentCaptor;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -110,6 +114,33 @@ class TransactionServiceTest {
 
         assertThat(persisted).isFalse();
         verify(repository, never()).save(any(TransactionEntity.class));
+    }
+
+    @Test
+    void findByAccount_returnsRecentTransactionsBoundedByLimit() {
+        var entity =
+                new TransactionEntity(
+                        UUID.randomUUID(),
+                        "ACC-1",
+                        "ACC-2",
+                        new BigDecimal("250.0000"),
+                        "USD",
+                        Direction.DEBIT,
+                        "transfer",
+                        Instant.parse("2026-03-03T00:00:00Z"),
+                        Instant.parse("2026-03-03T00:00:01Z"));
+        when(repository.findByAccountIdOrderByOccurredAtDesc(eq("ACC-1"), any(Pageable.class)))
+                .thenReturn(List.of(entity));
+
+        List<TransactionResponse> history = service.findByAccount("ACC-1", 25);
+
+        assertThat(history).singleElement().satisfies(t -> {
+            assertThat(t.account().value()).isEqualTo("ACC-1");
+            assertThat(t.amount().amount()).isEqualByComparingTo("250.0000");
+        });
+        ArgumentCaptor<Pageable> captor = ArgumentCaptor.forClass(Pageable.class);
+        verify(repository).findByAccountIdOrderByOccurredAtDesc(eq("ACC-1"), captor.capture());
+        assertThat(captor.getValue()).isEqualTo(PageRequest.of(0, 25));
     }
 
     @Test
