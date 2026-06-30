@@ -16,6 +16,11 @@ dependencies {
     implementation(project(":libs:dolos-proto"))
     runtimeOnly("io.grpc:grpc-netty-shaded:1.68.1")
 
+    // Spring Cloud edge (Phase 5A): register with Eureka + pull centralized config from config-server.
+    implementation(platform(libs.spring.cloud.bom))
+    implementation(libs.spring.cloud.starter.netflix.eureka.client)
+    implementation(libs.spring.cloud.starter.config)
+
     // Web is present only so Actuator can serve /actuator/health over HTTP (compose healthcheck).
     implementation("org.springframework.boot:spring-boot-starter-web")
     implementation("org.springframework.boot:spring-boot-starter-actuator")

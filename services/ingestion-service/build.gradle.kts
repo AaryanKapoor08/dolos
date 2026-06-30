@@ -17,6 +17,11 @@ dependencies {
     implementation(project(":libs:dolos-common"))
     implementation(project(":libs:dolos-events"))
 
+    // Spring Cloud edge (Phase 5A): register with Eureka + pull centralized config from config-server.
+    implementation(platform(libs.spring.cloud.bom))
+    implementation(libs.spring.cloud.starter.netflix.eureka.client)
+    implementation(libs.spring.cloud.starter.config)
+
     implementation("org.springframework.boot:spring-boot-starter-webflux")
     implementation("org.springframework.boot:spring-boot-starter-data-r2dbc")
     implementation("org.springframework.boot:spring-boot-starter-actuator")

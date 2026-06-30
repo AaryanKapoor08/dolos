@@ -20,6 +20,10 @@ dependencies {
     implementation(platform(libs.spring.modulith.bom))
     // Align all axon-* artifacts (CQRS + Event Sourcing, Phase 3B/3C).
     implementation(platform(libs.axon.bom))
+    // Align all spring-cloud-* artifacts (Phase 5A): Eureka client + centralized config.
+    implementation(platform(libs.spring.cloud.bom))
+    implementation(libs.spring.cloud.starter.netflix.eureka.client)
+    implementation(libs.spring.cloud.starter.config)
 
     implementation(project(":libs:dolos-common"))
     // The Kafka integration schema (Phase 3E): consume AlertRaised, publish the case events.

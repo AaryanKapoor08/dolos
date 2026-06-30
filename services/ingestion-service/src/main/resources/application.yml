@@ -1,6 +1,11 @@
 spring:
   application:
     name: ingestion-service
+  config:
+    # Spring Cloud Config client (Phase 5A): pull centralized config from config-server. `optional:`
+    # so the service still boots from this local application.yml if the config server is unreachable;
+    # the container overrides the host to config-server:8888 (see services.yml).
+    import: "optional:configserver:http://localhost:8888"
   r2dbc:
     # App data path is reactive. Host default; container overrides via SPRING_R2DBC_* (services.yml).
     # `schema=ingestion` sets the connection search_path so unqualified table names resolve to
@@ -30,7 +35,8 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info
+        # health + info, plus refresh so a centralized config change is picked up via POST /actuator/refresh (5A).
+        include: health,info,refresh
   endpoint:
     health:
       show-details: always
@@ -42,3 +48,13 @@ info:
   app:
     name: ${spring.application.name}
     phase: "1B"
+
+# Register with the Eureka service registry (Phase 5A). Host default points at localhost; on the Docker
+# network the container overrides EUREKA_CLIENT_SERVICEURL_DEFAULTZONE to discovery-server:8761.
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+  instance:
+    # Advertise by IP — the default OS hostname (container id) isn't resolvable by Eureka peers.
+    prefer-ip-address: true

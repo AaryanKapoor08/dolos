@@ -17,6 +17,11 @@ dependencies {
     implementation(project(":libs:dolos-proto"))
     runtimeOnly("io.grpc:grpc-netty-shaded:1.68.1")
 
+    // Spring Cloud edge (Phase 5A): register with Eureka + pull centralized config from config-server.
+    implementation(platform(libs.spring.cloud.bom))
+    implementation(libs.spring.cloud.starter.netflix.eureka.client)
+    implementation(libs.spring.cloud.starter.config)
+
     // Resilience4j around the gRPC call: circuit breaker + retry + fallback (needs AOP for the annotations).
     implementation("io.github.resilience4j:resilience4j-spring-boot3:2.2.0")
     implementation("org.springframework.boot:spring-boot-starter-aop")

@@ -14,6 +14,10 @@ plugins {
 dependencies {
     // Align all spring-ai-* artifacts (Boot 3.4 does not manage Spring AI itself).
     implementation(platform(libs.spring.ai.bom))
+    // Align all spring-cloud-* artifacts (Phase 5A): Eureka client + centralized config.
+    implementation(platform(libs.spring.cloud.bom))
+    implementation(libs.spring.cloud.starter.netflix.eureka.client)
+    implementation(libs.spring.cloud.starter.config)
 
     implementation(project(":libs:dolos-common"))
 

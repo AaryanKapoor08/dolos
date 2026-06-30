@@ -6,6 +6,59 @@
 # (No top-level `name:` here on purpose, so a combined run shares infra.yml's project.)
 
 services:
+  # --- Spring Cloud edge (Phase 5A) -----------------------------------------------------
+  # discovery-server: Netflix Eureka service registry. Every service registers here as a Eureka
+  # client so the API gateway (5B) can route by logical name (lb://service). Dashboard: :8761.
+  discovery-server:
+    build:
+      context: ../..
+      dockerfile: services/discovery-server/Dockerfile
+    image: dolos/discovery-server:0.0.1-SNAPSHOT
+    container_name: dolos-discovery-server
+    restart: unless-stopped
+    ports:
+      - "8761:8761"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8761/actuator/health | grep -q '\"status\":\"UP\"' || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    networks:
+      - dolos
+
+  # config-server: Spring Cloud Config server serving deploy/config-repo (the `native` filesystem
+  # backend, bind-mounted read-only so edits + POST /actuator/refresh apply without an image rebuild).
+  # Registers with Eureka like any other service. Clients import it with optional:configserver (so a
+  # service still boots from its local application.yml if this server is down).
+  config-server:
+    build:
+      context: ../..
+      dockerfile: services/config-server/Dockerfile
+    image: dolos/config-server:0.0.1-SNAPSHOT
+    container_name: dolos-config-server
+    restart: unless-stopped
+    depends_on:
+      discovery-server:
+        condition: service_started
+    ports:
+      - "8888:8888"
+    environment:
+      # The bind-mounted config-repo path inside the container (native backend search location).
+      DOLOS_CONFIG_REPO: /config-repo
+      # Register with the registry by its compose DNS name on the shared network.
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discovery-server:8761/eureka/
+    volumes:
+      - ../config-repo:/config-repo:ro
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8888/actuator/health | grep -q '\"status\":\"UP\"' || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 40s
+    networks:
+      - dolos
+
   transaction-service:
     build:
       context: ../..
@@ -18,6 +71,8 @@ services:
         condition: service_healthy
       redpanda:
         condition: service_healthy
+      config-server:
+        condition: service_healthy
     ports:
       - "8081:8081"
     environment:
@@ -27,6 +82,9 @@ services:
       SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-dolos}
       # Consume TransactionReceived over the broker's internal listener (Phase 1C).
       SPRING_KAFKA_BOOTSTRAP_SERVERS: redpanda:9092
+      # Spring Cloud edge (5A): register with Eureka + pull centralized config (optional fallback).
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discovery-server:8761/eureka/
+      SPRING_CONFIG_IMPORT: optional:configserver:http://config-server:8888
     healthcheck:
       test: ["CMD-SHELL", "curl -fsS http://localhost:8081/actuator/health | grep -q '\"status\":\"UP\"' || exit 1"]
       interval: 10s
@@ -50,6 +108,8 @@ services:
         condition: service_healthy
       redpanda:
         condition: service_healthy
+      config-server:
+        condition: service_healthy
     ports:
       - "8082:8082"
     environment:
@@ -63,6 +123,9 @@ services:
       SPRING_FLYWAY_PASSWORD: ${POSTGRES_PASSWORD:-dolos}
       # Reach Redpanda by its internal listener on the shared `dolos` network.
       SPRING_KAFKA_BOOTSTRAP_SERVERS: redpanda:9092
+      # Spring Cloud edge (5A): register with Eureka + pull centralized config (optional fallback).
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discovery-server:8761/eureka/
+      SPRING_CONFIG_IMPORT: optional:configserver:http://config-server:8888
     healthcheck:
       test: ["CMD-SHELL", "curl -fsS http://localhost:8082/actuator/health | grep -q '\"status\":\"UP\"' || exit 1"]
       interval: 10s
@@ -84,12 +147,17 @@ services:
     depends_on:
       redpanda:
         condition: service_healthy
+      config-server:
+        condition: service_healthy
     ports:
       - "8083:8083"
       - "9090:9090"   # gRPC ScoringService (Phase 2C)
     environment:
       # Consume/produce over the broker's internal listener on the shared `dolos` network.
       SPRING_KAFKA_BOOTSTRAP_SERVERS: redpanda:9092
+      # Spring Cloud edge (5A): register with Eureka + pull centralized config (optional fallback).
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discovery-server:8761/eureka/
+      SPRING_CONFIG_IMPORT: optional:configserver:http://config-server:8888
     healthcheck:
       test: ["CMD-SHELL", "curl -fsS http://localhost:8083/actuator/health | grep -q '\"status\":\"UP\"' || exit 1"]
       interval: 10s
@@ -114,6 +182,8 @@ services:
         condition: service_healthy
       redpanda:
         condition: service_healthy
+      config-server:
+        condition: service_healthy
     ports:
       - "8085:8085"
     environment:
@@ -123,6 +193,9 @@ services:
       SPRING_NEO4J_AUTHENTICATION_PASSWORD: ${NEO4J_PASSWORD:-dolosgraph}
       # Consume TransactionReceived / produce RingDetected over the broker's internal listener.
       SPRING_KAFKA_BOOTSTRAP_SERVERS: redpanda:9092
+      # Spring Cloud edge (5A): register with Eureka + pull centralized config (optional fallback).
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discovery-server:8761/eureka/
+      SPRING_CONFIG_IMPORT: optional:configserver:http://config-server:8888
     healthcheck:
       test: ["CMD-SHELL", "curl -fsS http://localhost:8085/actuator/health | grep -q '\"status\":\"UP\"' || exit 1"]
       interval: 10s
@@ -146,6 +219,8 @@ services:
         condition: service_healthy
       redpanda:
         condition: service_healthy
+      config-server:
+        condition: service_healthy
     ports:
       - "8084:8084"
     environment:
@@ -157,6 +232,10 @@ services:
       SPRING_KAFKA_BOOTSTRAP_SERVERS: redpanda:9092
       # Synchronous score-detail enrichment over gRPC (Phase 2C); Resilience4j covers an outage.
       DOLOS_SCORING_GRPC_TARGET: scoring-service:9090
+      # Spring Cloud edge (5A): register with Eureka + pull centralized config (optional fallback).
+      # alert-service is the config-refresh demo target (see deploy/config-repo/alert-service.yml).
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discovery-server:8761/eureka/
+      SPRING_CONFIG_IMPORT: optional:configserver:http://config-server:8888
     healthcheck:
       test: ["CMD-SHELL", "curl -fsS http://localhost:8084/actuator/health | grep -q '\"status\":\"UP\"' || exit 1"]
       interval: 10s
@@ -184,6 +263,8 @@ services:
         condition: service_healthy
       keycloak:
         condition: service_started
+      config-server:
+        condition: service_healthy
     ports:
       - "8086:8086"
     environment:
@@ -195,6 +276,9 @@ services:
       SPRING_KAFKA_BOOTSTRAP_SERVERS: redpanda:9092
       # Validate Keycloak JWTs against the dolos realm's keys, reached by compose DNS (Phase 3F).
       SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI: http://keycloak:8080/realms/dolos/protocol/openid-connect/certs
+      # Spring Cloud edge (5A): register with Eureka + pull centralized config (optional fallback).
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discovery-server:8761/eureka/
+      SPRING_CONFIG_IMPORT: optional:configserver:http://config-server:8888
     healthcheck:
       test: ["CMD-SHELL", "curl -fsS http://localhost:8086/actuator/health | grep -q '\"status\":\"UP\"' || exit 1"]
       interval: 10s
@@ -224,6 +308,8 @@ services:
       # Gate on the corpus being uploaded (also MinIO's readiness gate); startup ingest reads it.
       minio-init:
         condition: service_completed_successfully
+      config-server:
+        condition: service_healthy
     ports:
       - "8090:8090"
     environment:
@@ -249,6 +335,9 @@ services:
       DOLOS_PLATFORM_KEYCLOAK_TOKEN_URI: http://keycloak:8080/realms/dolos/protocol/openid-connect/token
       DOLOS_PLATFORM_KEYCLOAK_CLIENT_ID: dolos-copilot
       DOLOS_PLATFORM_KEYCLOAK_CLIENT_SECRET: dolos-copilot-secret
+      # Spring Cloud edge (5A): register with Eureka + pull centralized config (optional fallback).
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discovery-server:8761/eureka/
+      SPRING_CONFIG_IMPORT: optional:configserver:http://config-server:8888
     healthcheck:
       test: ["CMD-SHELL", "curl -fsS http://localhost:8090/actuator/health | grep -q '\"status\":\"UP\"' || exit 1"]
       interval: 10s
