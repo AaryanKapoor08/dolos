@@ -61,6 +61,19 @@ dolos:
       bucket: regulations
     # Ingest the corpus on startup only when the store is empty; POST /api/copilot/ingest forces a reload.
     ingest-on-startup: true
+  # Where the platform tools (Phase 4D) reach the rest of Dolos. Host defaults; the container overrides
+  # each via DOLOS_PLATFORM_* (see services.yml). case-service is secured, so the copilot fetches a
+  # Keycloak service token via the dolos-copilot client-credentials grant.
+  platform:
+    transaction-base-url: http://localhost:8081
+    alert-base-url: http://localhost:8084
+    graph-base-url: http://localhost:8085
+    case-base-url: http://localhost:8086
+    transaction-history-limit: 25
+    keycloak:
+      token-uri: http://localhost:8087/realms/dolos/protocol/openid-connect/token
+      client-id: dolos-copilot
+      client-secret: dolos-copilot-secret
 
 server:
   port: 8090
@@ -80,4 +93,4 @@ management:
 info:
   app:
     name: ${spring.application.name}
-    phase: "4B"
+    phase: "4D"

@@ -25,6 +25,18 @@
       "serviceAccountsEnabled": false,
       "redirectUris": ["*"],
       "webOrigins": ["*"]
+    },
+    {
+      "clientId": "dolos-copilot",
+      "name": "Dolos AI Copilot (service)",
+      "description": "Service client the ai-copilot-service uses to call the secured case-service (Phase 4D).",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "secret": "dolos-copilot-secret",
+      "standardFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": true
     }
   ],
   "users": [
@@ -60,6 +72,12 @@
       "requiredActions": [],
       "credentials": [{ "type": "password", "value": "admin-user", "temporary": false }],
       "realmRoles": ["ANALYST", "SENIOR_ANALYST", "ADMIN"]
+    },
+    {
+      "username": "service-account-dolos-copilot",
+      "enabled": true,
+      "serviceAccountClientId": "dolos-copilot",
+      "realmRoles": ["ANALYST", "SENIOR_ANALYST"]
     }
   ]
 }

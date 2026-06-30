@@ -237,6 +237,15 @@ services:
       DOLOS_RAG_MINIO_ENDPOINT: http://minio:9000
       DOLOS_RAG_MINIO_ACCESS_KEY: ${MINIO_ROOT_USER:-dolos}
       DOLOS_RAG_MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD:-dolosminio}
+      # Platform tools (Phase 4D): reach the downstream services by compose DNS. case-service is secured,
+      # so the copilot obtains a service token via the dolos-copilot client-credentials grant on Keycloak.
+      DOLOS_PLATFORM_TRANSACTION_BASE_URL: http://transaction-service:8081
+      DOLOS_PLATFORM_ALERT_BASE_URL: http://alert-service:8084
+      DOLOS_PLATFORM_GRAPH_BASE_URL: http://graph-service:8085
+      DOLOS_PLATFORM_CASE_BASE_URL: http://case-service:8086
+      DOLOS_PLATFORM_KEYCLOAK_TOKEN_URI: http://keycloak:8080/realms/dolos/protocol/openid-connect/token
+      DOLOS_PLATFORM_KEYCLOAK_CLIENT_ID: dolos-copilot
+      DOLOS_PLATFORM_KEYCLOAK_CLIENT_SECRET: dolos-copilot-secret
     healthcheck:
       test: ["CMD-SHELL", "curl -fsS http://localhost:8090/actuator/health | grep -q '\"status\":\"UP\"' || exit 1"]
       interval: 10s
