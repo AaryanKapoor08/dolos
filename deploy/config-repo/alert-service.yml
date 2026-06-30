@@ -1,0 +1,11 @@
+# Centralized configuration — alert-service overrides (Phase 5A).
+#
+# Layered ON TOP of config-repo/application.yml for alert-service only. Demonstrates moving a
+# service-specific knob (the alert threshold) to the config server while the service keeps a safe
+# local default in its own application.yml (used if this server is unreachable).
+dolos:
+  alert:
+    # Centralized alert policy. (Bound via @Value at startup, so a change here applies on the next
+    # boot or a context refresh of that bean — see the refreshable dolos.platform.config-source for
+    # the live /actuator/refresh demo.)
+    score-threshold: 60

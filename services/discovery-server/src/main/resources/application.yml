@@ -1,0 +1,37 @@
+spring:
+  application:
+    name: discovery-server
+  threads:
+    virtual:
+      enabled: true
+
+server:
+  port: 8761
+
+# A standalone registry does not register with (or fetch from) itself. On the Docker network
+# the hostname is overridden to the compose service name so clients can resolve this instance.
+eureka:
+  instance:
+    hostname: localhost
+  client:
+    register-with-eureka: false
+    fetch-registry: false
+    service-url:
+      defaultZone: http://${eureka.instance.hostname}:${server.port}/eureka/
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: always
+  info:
+    env:
+      enabled: true
+
+info:
+  app:
+    name: ${spring.application.name}
+    phase: "5A"

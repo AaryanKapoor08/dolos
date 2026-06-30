@@ -41,7 +41,8 @@ flowable = "7.1.0"
 springAi = "1.0.0"
 minio = "8.5.17"               # MinIO Java SDK — RAG source-document object store (Phase 4B)
 
-# Forward-looking (wired in later; verify when adopted)
+# Spring Cloud (Phase 5) — Eureka discovery, Config server, Gateway. The 2024.0.x train
+# (Moorgate) is the line that pairs with Spring Boot 3.4.x; the BOM aligns every spring-cloud-* artifact.
 springCloud = "2024.0.0"        # Spring Cloud (Gateway/Eureka/Config); pairs with Spring Boot 3.4.x
 testcontainers = "1.21.3"       # used by the slice-e2e module (Phase 1F)
 # grpc       = "1.6x.x"         # verify when adopted
@@ -94,8 +95,16 @@ spring-ai-starter-mcp-server-webmvc = { group = "org.springframework.ai", name =
 # MinIO Java SDK (Phase 4B): read the regulation corpus objects from the S3-compatible store.
 minio = { group = "io.minio", name = "minio", version.ref = "minio" }
 
+# Spring Cloud (Phase 5A) — discovery-server (Eureka), config-server (Spring Cloud Config), and the
+# Eureka/config CLIENTS retrofitted onto every service. The BOM aligns all spring-cloud-* artifacts;
+# the starters omit their own version. Imported per-module via platform(libs.spring.cloud.bom).
+spring-cloud-bom = { group = "org.springframework.cloud", name = "spring-cloud-dependencies", version.ref = "springCloud" }
+spring-cloud-starter-netflix-eureka-server = { group = "org.springframework.cloud", name = "spring-cloud-starter-netflix-eureka-server" }
+spring-cloud-starter-netflix-eureka-client = { group = "org.springframework.cloud", name = "spring-cloud-starter-netflix-eureka-client" }
+spring-cloud-config-server = { group = "org.springframework.cloud", name = "spring-cloud-config-server" }
+spring-cloud-starter-config = { group = "org.springframework.cloud", name = "spring-cloud-starter-config" }
+
 # Forward-looking BOMs (uncomment + wire when needed)
-# spring-cloud-bom = { group = "org.springframework.cloud", name = "spring-cloud-dependencies", version.ref = "springCloud" }
 # testcontainers-bom = { group = "org.testcontainers", name = "testcontainers-bom", version.ref = "testcontainers" }
 
 [bundles]

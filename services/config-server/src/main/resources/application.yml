@@ -1,0 +1,47 @@
+spring:
+  application:
+    name: config-server
+  threads:
+    virtual:
+      enabled: true
+  profiles:
+    # The `native` backend serves config straight from the filesystem (deploy/config-repo) instead
+    # of cloning a remote git repo — same folder for host and container, zero extra moving parts.
+    active: native
+  cloud:
+    config:
+      server:
+        native:
+          # Host default is repo-root-relative; the container overrides DOLOS_CONFIG_REPO to the
+          # mounted path (see services.yml). Spring serves <app>.yml / <app>-<profile>.yml from here.
+          search-locations: file:${DOLOS_CONFIG_REPO:./deploy/config-repo}
+
+server:
+  port: 8888
+
+# Register with Eureka so the registry lists the config server like any other service. On the Docker
+# network we advertise by IP (the default OS hostname isn't resolvable by peers) — see the watch-out.
+eureka:
+  instance:
+    prefer-ip-address: true
+  client:
+    service-url:
+      # Host default; the container overrides via EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE (services.yml).
+      defaultZone: http://localhost:8761/eureka/
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: always
+  info:
+    env:
+      enabled: true
+
+info:
+  app:
+    name: ${spring.application.name}
+    phase: "5A"

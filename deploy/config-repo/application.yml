@@ -1,0 +1,32 @@
+# Centralized configuration — shared defaults (Phase 5A).
+#
+# Spring Cloud Config serves this `application.yml` as the BASE layer for EVERY client
+# (any app, any profile), with <service-name>.yml layered on top. Clients fetch it via
+# `spring.config.import: optional:configserver:...`; because the import is `optional:`,
+# a service still boots from its own local application.yml if this server is unreachable.
+#
+# Precedence reminder: OS environment variables (e.g. the compose overrides in services.yml)
+# rank ABOVE config-server values, so per-container settings (the Docker Eureka URL) win.
+
+# Eureka client defaults for every service. Host default points at localhost; on the Docker
+# network each container overrides EUREKA_CLIENT_SERVICEURL_DEFAULTZONE to discovery-server:8761.
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+  instance:
+    # Advertise by IP — the default OS hostname (container id) isn't resolvable by Eureka peers.
+    prefer-ip-address: true
+
+# Expose `refresh` everywhere so a config change pushed here is picked up live via POST /actuator/refresh.
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,refresh
+
+# A refreshable marker proving config came from the config server. Change this value here, POST
+# /actuator/refresh on any client, and the endpoint reports `dolos.platform.config-source` changed.
+dolos:
+  platform:
+    config-source: "config-server (deploy/config-repo) v1"
