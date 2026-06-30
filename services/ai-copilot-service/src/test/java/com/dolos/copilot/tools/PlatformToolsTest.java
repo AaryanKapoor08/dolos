@@ -3,12 +3,15 @@ package com.dolos.copilot.tools;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.header;
+import static org.springframework.test.web.client.match.MockRestRequestMatchers.jsonPath;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.method;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withResourceNotFound;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -116,6 +119,69 @@ class PlatformToolsTest {
         String result = tools.runGraphQuery("ACC-1");
 
         assertThat(result).contains("\"inRing\":true").contains("RING-A-B");
+        server.verify();
+    }
+
+    // --- Agent-support operations (Phase 4E) ------------------------------------------------------
+
+    @Test
+    void findAlert_filtersThePagedQueueById() {
+        UUID alertId = UUID.fromString("11111111-1111-1111-1111-111111111111");
+        server.expect(requestTo("http://alert-service:8084/api/alerts?size=2000"))
+                .andExpect(method(HttpMethod.GET))
+                .andRespond(
+                        withSuccess(
+                                "{\"content\":[{\"alertId\":\"99999999-9999-9999-9999-999999999999\",\"score\":10},"
+                                        + "{\"alertId\":\"11111111-1111-1111-1111-111111111111\",\"score\":80,"
+                                        + "\"account\":{\"value\":\"ACC-1\"}}]}",
+                                MediaType.APPLICATION_JSON));
+
+        JsonNode alert = tools.findAlert(alertId);
+
+        assertThat(alert).isNotNull();
+        assertThat(alert.path("account").path("value").asText()).isEqualTo("ACC-1");
+        server.verify();
+    }
+
+    @Test
+    void findAlert_returnsNullWhenAbsent() {
+        server.expect(requestTo("http://alert-service:8084/api/alerts?size=2000"))
+                .andRespond(withSuccess("{\"content\":[]}", MediaType.APPLICATION_JSON));
+
+        assertThat(tools.findAlert(UUID.randomUUID())).isNull();
+        server.verify();
+    }
+
+    @Test
+    void findCaseIdByAlert_matchesOnOpeningAlert() {
+        when(tokens.accessToken()).thenReturn("test-token");
+        UUID alertId = UUID.fromString("11111111-1111-1111-1111-111111111111");
+        UUID caseId = UUID.fromString("22222222-2222-2222-2222-222222222222");
+        server.expect(requestTo("http://case-service:8086/api/cases"))
+                .andExpect(method(HttpMethod.GET))
+                .andExpect(header("Authorization", "Bearer test-token"))
+                .andRespond(
+                        withSuccess(
+                                "[{\"caseId\":\"" + caseId + "\",\"alertId\":\"" + alertId + "\"}]",
+                                MediaType.APPLICATION_JSON));
+
+        assertThat(tools.findCaseIdByAlert(alertId)).isEqualTo(caseId);
+        server.verify();
+    }
+
+    @Test
+    void addCaseEvidence_postsNoteWithBearerToken() {
+        when(tokens.accessToken()).thenReturn("test-token");
+        UUID caseId = UUID.fromString("22222222-2222-2222-2222-222222222222");
+        server.expect(requestTo("http://case-service:8086/api/cases/" + caseId + "/evidence"))
+                .andExpect(method(HttpMethod.POST))
+                .andExpect(header("Authorization", "Bearer test-token"))
+                .andExpect(jsonPath("$.note").value("see SAR"))
+                .andExpect(jsonPath("$.addedBy").value("copilot"))
+                .andRespond(withSuccess());
+
+        tools.addCaseEvidence(caseId, "see SAR");
+
         server.verify();
     }
 }
