@@ -29,6 +29,12 @@ drools = "8.44.0.Final"
 springModulith = "1.3.12"
 axon = "4.11.4"
 
+# Embedded BPMN workflow engine (Phase 3D) — Flowable inside case-service's workflow module.
+# 7.1.0 targets Spring Boot 3.3 / Spring Framework 6.1 (Jakarta) and runs forward-compatibly on our
+# Boot 3.4.1; 7.2.0 targets Boot 3.5 and 8.0.0 targets Boot 4 — both newer than this stack, the
+# riskier direction. Spring Boot's dependency-management pins Flowable's transitive Spring libs to ours.
+flowable = "7.1.0"
+
 # Forward-looking (wired in later; verify when adopted)
 springCloud = "2024.0.0"        # Spring Cloud (Gateway/Eureka/Config); pairs with Spring Boot 3.4.x
 testcontainers = "1.21.3"       # used by the slice-e2e module (Phase 1F)
@@ -64,6 +70,9 @@ spring-modulith-docs = { group = "org.springframework.modulith", name = "spring-
 axon-bom = { group = "org.axonframework", name = "axon-bom", version.ref = "axon" }
 axon-spring-boot-starter = { group = "org.axonframework", name = "axon-spring-boot-starter" }
 axon-test = { group = "org.axonframework", name = "axon-test" }
+
+# Flowable (Phase 3D) — the process-engine-only starter (BPMN; no CMMN/DMN) keeps the table set small.
+flowable-spring-boot-starter-process = { group = "org.flowable", name = "flowable-spring-boot-starter-process", version.ref = "flowable" }
 
 # Forward-looking BOMs (uncomment + wire when needed)
 # spring-cloud-bom = { group = "org.springframework.cloud", name = "spring-cloud-dependencies", version.ref = "springCloud" }

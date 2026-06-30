@@ -45,6 +45,21 @@ axon:
     events: jackson
     messages: jackson
 
+# Flowable BPMN engine (Phase 3D): the embedded process engine in the workflow module, on the same
+# datasource. House rule — Flyway owns every table (V3), so Flowable never touches the schema.
+flowable:
+  # Do NOT auto-create/upgrade: validate-only against the tables Flyway created (versions must match).
+  database-schema-update: false
+  # Flowable's tables live in this service's own schema, like the Axon + CaseView tables.
+  database-schema: casework
+  # The investigation lifecycle is synchronous (service tasks run inline); no background job pollers.
+  async-executor-activate: false
+  # Process engine only — disable the IDM and event-registry sub-engines so their tables aren't needed.
+  idm:
+    enabled: false
+  eventregistry:
+    enabled: false
+
 server:
   port: 8086
 
@@ -63,4 +78,4 @@ management:
 info:
   app:
     name: ${spring.application.name}
-    phase: "3C"
+    phase: "3D"

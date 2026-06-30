@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Phase 3D — the investigation workflow as BPMN 2.0, auto-deployed by the Flowable Spring Boot
+  starter from classpath:/processes/. It drives an already-opened case through its lifecycle:
+
+      start -> Assign (service) -> Investigate (user task) -> <escalate?> gateway
+                 escalate == true : Escalate -> File Report -> Close -> end
+                 otherwise        :                           Close -> end
+
+  Service tasks dispatch Axon commands via the *Delegate Spring beans (referenced by name), so the
+  process and the event-sourced Case aggregate advance together; the user task gates the analyst's
+  decision. Both gateway branches converge on Close, so every finished process leaves the case CLOSED.
+-->
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"
+             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+             xmlns:flowable="http://flowable.org/bpmn"
+             targetNamespace="http://dolos/casework">
+
+  <process id="case-investigation" name="Case Investigation" isExecutable="true">
+
+    <startEvent id="start"/>
+
+    <sequenceFlow id="toAssign" sourceRef="start" targetRef="assignTask"/>
+
+    <serviceTask id="assignTask" name="Assign"
+                 flowable:delegateExpression="${assignCaseDelegate}"/>
+
+    <sequenceFlow id="toInvestigate" sourceRef="assignTask" targetRef="investigateTask"/>
+
+    <!-- Gates the analyst's decision: the process waits here until the task is completed. -->
+    <userTask id="investigateTask" name="Investigate" flowable:candidateGroups="ANALYST"/>
+
+    <sequenceFlow id="toGateway" sourceRef="investigateTask" targetRef="escalateGateway"/>
+
+    <exclusiveGateway id="escalateGateway" name="Escalate?" default="toClose"/>
+
+    <!-- Escalate branch: taken only when the analyst set escalate = true. -->
+    <sequenceFlow id="toEscalate" sourceRef="escalateGateway" targetRef="escalateTask">
+      <conditionExpression xsi:type="tFormalExpression">${escalate == true}</conditionExpression>
+    </sequenceFlow>
+
+    <serviceTask id="escalateTask" name="Escalate"
+                 flowable:delegateExpression="${escalateCaseDelegate}"/>
+
+    <sequenceFlow id="toFileReport" sourceRef="escalateTask" targetRef="fileReportTask"/>
+
+    <serviceTask id="fileReportTask" name="File Report"
+                 flowable:delegateExpression="${fileReportDelegate}"/>
+
+    <sequenceFlow id="reportToClose" sourceRef="fileReportTask" targetRef="closeTask"/>
+
+    <!-- Default branch (no escalation) goes straight to Close. -->
+    <sequenceFlow id="toClose" sourceRef="escalateGateway" targetRef="closeTask"/>
+
+    <serviceTask id="closeTask" name="Close"
+                 flowable:delegateExpression="${closeCaseDelegate}"/>
+
+    <sequenceFlow id="toEnd" sourceRef="closeTask" targetRef="end"/>
+
+    <endEvent id="end"/>
+
+  </process>
+</definitions>

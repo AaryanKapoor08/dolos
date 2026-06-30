@@ -34,6 +34,10 @@ dependencies {
     // The JPA event store lives on Postgres (decision G) — Axon Server is disabled in application.yml.
     implementation(libs.axon.spring.boot.starter)
 
+    // Flowable (Phase 3D): the embedded BPMN process engine in the workflow module. Postgres-backed on
+    // the same datasource; Flyway owns its tables (V3) so its database-schema-update stays off.
+    implementation(libs.flowable.spring.boot.starter.process)
+
     // Persistence: JPA/Hibernate hosts both the Axon event store and the CaseView read model, in
     // case-service's own Flyway-managed `casework` schema on PostgreSQL.
     implementation("org.springframework.boot:spring-boot-starter-data-jpa")
@@ -51,4 +55,6 @@ dependencies {
     testImplementation(libs.spring.modulith.docs)
     // Axon's AggregateTestFixture for given-when-then aggregate unit tests (no DB, no Spring context).
     testImplementation(libs.axon.test)
+    // H2 backs a standalone in-memory Flowable engine in the 3D workflow test (no Postgres needed).
+    testRuntimeOnly("com.h2database:h2")
 }
