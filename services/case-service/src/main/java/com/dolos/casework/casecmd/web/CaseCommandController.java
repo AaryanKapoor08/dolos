@@ -8,6 +8,9 @@ import java.util.Map;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -19,8 +22,9 @@ import org.springframework.web.bind.annotation.RestController;
  * {@link CaseCommandService}; the read side ({@code GET}) is served separately by the query module
  * (Phase 3C), keeping the write and read APIs cleanly split (CQRS).
  *
- * <p>The {@code *By} actor fields default to {@code "system"} when omitted so the API is easy to drive
- * by hand; once Keycloak lands (Phase 3F) they will come from the authenticated principal.
+ * <p>Secured as an OAuth2 resource server (Phase 3F): every call needs a valid Keycloak JWT, and the
+ * actor recorded on each event is the authenticated user ({@code preferred_username}). Escalating and
+ * filing a report are senior-only, enforced with {@code @PreAuthorize} method security.
  */
 @RestController
 @RequestMapping("/api/cases")
@@ -35,52 +39,72 @@ public class CaseCommandController {
     }
 
     @PostMapping
-    public ResponseEntity<Map<String, UUID>> open(@Valid @RequestBody OpenRequest request) {
+    public ResponseEntity<Map<String, UUID>> open(
+            @Valid @RequestBody OpenRequest request, @AuthenticationPrincipal Jwt jwt) {
         UUID caseId =
                 commandService.openCase(
                         request.alertId(),
                         request.accountId(),
                         request.score(),
-                        actor(request.openedBy()));
+                        actor(request.openedBy(), jwt));
         return ResponseEntity.status(HttpStatus.CREATED).body(Map.of("caseId", caseId));
     }
 
     @PostMapping("/{id}/assign")
     public ResponseEntity<Void> assign(
-            @PathVariable("id") UUID id, @Valid @RequestBody AssignRequest request) {
-        commandService.assign(id, request.assignee(), actor(request.assignedBy()));
+            @PathVariable("id") UUID id,
+            @Valid @RequestBody AssignRequest request,
+            @AuthenticationPrincipal Jwt jwt) {
+        commandService.assign(id, request.assignee(), actor(request.assignedBy(), jwt));
         return ResponseEntity.noContent().build();
     }
 
     @PostMapping("/{id}/evidence")
     public ResponseEntity<Void> addEvidence(
-            @PathVariable("id") UUID id, @Valid @RequestBody EvidenceRequest request) {
-        commandService.addEvidence(id, request.note(), actor(request.addedBy()));
+            @PathVariable("id") UUID id,
+            @Valid @RequestBody EvidenceRequest request,
+            @AuthenticationPrincipal Jwt jwt) {
+        commandService.addEvidence(id, request.note(), actor(request.addedBy(), jwt));
         return ResponseEntity.noContent().build();
     }
 
+    @PreAuthorize("hasRole('SENIOR_ANALYST')")
     @PostMapping("/{id}/escalate")
     public ResponseEntity<Void> escalate(
-            @PathVariable("id") UUID id, @Valid @RequestBody EscalateRequest request) {
-        commandService.escalate(id, request.reason(), actor(request.escalatedBy()));
+            @PathVariable("id") UUID id,
+            @Valid @RequestBody EscalateRequest request,
+            @AuthenticationPrincipal Jwt jwt) {
+        commandService.escalate(id, request.reason(), actor(request.escalatedBy(), jwt));
         return ResponseEntity.noContent().build();
     }
 
+    @PreAuthorize("hasRole('SENIOR_ANALYST')")
     @PostMapping("/{id}/report")
     public ResponseEntity<Void> fileReport(
-            @PathVariable("id") UUID id, @Valid @RequestBody ReportRequest request) {
-        commandService.fileReport(id, request.reportReference(), actor(request.filedBy()));
+            @PathVariable("id") UUID id,
+            @Valid @RequestBody ReportRequest request,
+            @AuthenticationPrincipal Jwt jwt) {
+        commandService.fileReport(id, request.reportReference(), actor(request.filedBy(), jwt));
         return ResponseEntity.noContent().build();
     }
 
     @PostMapping("/{id}/close")
     public ResponseEntity<Void> close(
-            @PathVariable("id") UUID id, @Valid @RequestBody CloseRequest request) {
-        commandService.closeCase(id, request.resolution(), actor(request.closedBy()));
+            @PathVariable("id") UUID id,
+            @Valid @RequestBody CloseRequest request,
+            @AuthenticationPrincipal Jwt jwt) {
+        commandService.closeCase(id, request.resolution(), actor(request.closedBy(), jwt));
         return ResponseEntity.noContent().build();
     }
 
-    private static String actor(String supplied) {
+    /** The acting user is the authenticated principal; fall back to a supplied name, then "system". */
+    private static String actor(String supplied, Jwt jwt) {
+        if (jwt != null) {
+            String username = jwt.getClaimAsString("preferred_username");
+            if (username != null && !username.isBlank()) {
+                return username;
+            }
+        }
         return supplied == null || supplied.isBlank() ? SYSTEM : supplied;
     }
 

@@ -35,6 +35,7 @@ rootProject.name = "dolos"
 include("libs:dolos-common")
 include("libs:dolos-events")
 include("libs:dolos-proto")
+include("libs:dolos-security")
 include("services:transaction-service")
 include("services:ingestion-service")
 include("services:scoring-service")
@@ -42,5 +43,3 @@ include("services:graph-service")
 include("services:alert-service")
 include("services:case-service")
 include("tests:slice-e2e")
-// Added as they are created:
-// include("libs:dolos-security")

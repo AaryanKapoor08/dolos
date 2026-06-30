@@ -40,6 +40,15 @@ spring:
       # The transactional outbox (Phase 3E): on startup, resubmit any publications left incomplete by a
       # broker outage, so case events reach Kafka at least once across a blip.
       republish-outstanding-events-on-restart: true
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          # Phase 3F: validate bearer JWTs against the Keycloak `dolos` realm's signing keys. Using
+          # jwk-set-uri (not issuer-uri) keeps validation signature-only, so it boots without Keycloak
+          # and sidesteps the Keycloak-in-Docker issuer-host mismatch. Host default; the container
+          # overrides via SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI (see services.yml).
+          jwk-set-uri: http://localhost:8087/realms/dolos/protocol/openid-connect/certs
 
 # Axon Framework (Phase 3B/3C): event store + token store on the JPA/Postgres tables above (decision
 # G — no Axon Server container). Disabling the Axon Server connector makes Axon fall back to the
@@ -103,4 +112,4 @@ management:
 info:
   app:
     name: ${spring.application.name}
-    phase: "3D"
+    phase: "3F"

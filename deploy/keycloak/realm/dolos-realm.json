@@ -1,0 +1,65 @@
+{
+  "realm": "dolos",
+  "enabled": true,
+  "sslRequired": "none",
+  "registrationAllowed": false,
+  "verifyEmail": false,
+  "loginWithEmailAllowed": true,
+  "roles": {
+    "realm": [
+      { "name": "ANALYST", "description": "Investigate cases, add evidence, assign, close." },
+      { "name": "SENIOR_ANALYST", "description": "ANALYST plus escalate cases and file SAR/STR reports." },
+      { "name": "ADMIN", "description": "Administer the platform." }
+    ]
+  },
+  "clients": [
+    {
+      "clientId": "dolos-gateway",
+      "name": "Dolos Gateway / UI",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "secret": "dolos-gateway-secret",
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": true,
+      "serviceAccountsEnabled": false,
+      "redirectUris": ["*"],
+      "webOrigins": ["*"]
+    }
+  ],
+  "users": [
+    {
+      "username": "analyst",
+      "enabled": true,
+      "emailVerified": true,
+      "email": "analyst@dolos.local",
+      "firstName": "Ana",
+      "lastName": "Lyst",
+      "requiredActions": [],
+      "credentials": [{ "type": "password", "value": "analyst", "temporary": false }],
+      "realmRoles": ["ANALYST"]
+    },
+    {
+      "username": "senior",
+      "enabled": true,
+      "emailVerified": true,
+      "email": "senior@dolos.local",
+      "firstName": "Senna",
+      "lastName": "Yore",
+      "requiredActions": [],
+      "credentials": [{ "type": "password", "value": "senior", "temporary": false }],
+      "realmRoles": ["ANALYST", "SENIOR_ANALYST"]
+    },
+    {
+      "username": "admin-user",
+      "enabled": true,
+      "emailVerified": true,
+      "email": "admin@dolos.local",
+      "firstName": "Addy",
+      "lastName": "Min",
+      "requiredActions": [],
+      "credentials": [{ "type": "password", "value": "admin-user", "temporary": false }],
+      "realmRoles": ["ANALYST", "SENIOR_ANALYST", "ADMIN"]
+    }
+  ]
+}

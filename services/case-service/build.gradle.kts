@@ -24,6 +24,9 @@ dependencies {
     implementation(project(":libs:dolos-common"))
     // The Kafka integration schema (Phase 3E): consume AlertRaised, publish the case events.
     implementation(project(":libs:dolos-events"))
+    // OAuth2 resource-server security (Phase 3F): every endpoint needs a Keycloak JWT; realm roles
+    // map to ROLE_* and method security gates senior-only actions. Brings Spring Security transitively.
+    implementation(project(":libs:dolos-security"))
 
     implementation("org.springframework.boot:spring-boot-starter-web")
     implementation("org.springframework.boot:spring-boot-starter-actuator")
@@ -66,4 +69,6 @@ dependencies {
     testImplementation(libs.axon.test)
     // H2 backs a standalone in-memory Flowable engine in the 3D workflow test (no Postgres needed).
     testRuntimeOnly("com.h2database:h2")
+    // Mock-JWT support for the 3F security test (401/403/200 by role) — runs locally, no Keycloak.
+    testImplementation("org.springframework.security:spring-security-test")
 }

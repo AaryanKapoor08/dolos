@@ -125,6 +125,32 @@ services:
     networks:
       - dolos
 
+  # --- Identity (Phase 3F) --------------------------------------------------------------
+  # Keycloak: OAuth2/OIDC identity provider. Runs in dev mode (HTTP, $0) and imports the
+  # `dolos` realm at startup (roles ANALYST/SENIOR_ANALYST/ADMIN + a confidential client),
+  # so it's fully reproducible. case-service validates JWTs against this realm's keys; the
+  # gateway/UI use the client in Phase 5. Admin console http://localhost:8087 (admin/admin).
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.0
+    container_name: dolos-keycloak
+    restart: unless-stopped
+    command: ["start-dev", "--import-realm"]
+    environment:
+      # Bootstrap admin (Keycloak 26 names; the legacy KEYCLOAK_ADMIN_* are kept for compatibility).
+      KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_ADMIN:-admin}
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-admin}
+      KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN:-admin}
+      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-admin}
+      KC_HEALTH_ENABLED: "true"
+      KC_HTTP_ENABLED: "true"
+    ports:
+      - "${KEYCLOAK_PORT:-8087}:8080"
+    volumes:
+      # Realm JSON mounted into the import dir; `--import-realm` loads every file here on start.
+      - ../keycloak/realm:/opt/keycloak/data/import:ro
+    networks:
+      - dolos
+
 # Shared network so later services (transaction-service, etc.) reach Postgres by the
 # DNS name `postgres`. Named `dolos` so other compose files can attach to it as external.
 networks:
