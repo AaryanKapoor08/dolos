@@ -88,6 +88,9 @@ spring-ai-starter-model-ollama = { group = "org.springframework.ai", name = "spr
 # RAG (Phase 4B/4C): pgvector vector store + Tika document reader (PDF/text parsing). BOM-managed.
 spring-ai-starter-vector-store-pgvector = { group = "org.springframework.ai", name = "spring-ai-starter-vector-store-pgvector" }
 spring-ai-tika-document-reader = { group = "org.springframework.ai", name = "spring-ai-tika-document-reader" }
+# MCP server (Phase 4F): expose the platform @Tool beans to external MCP clients over Spring MVC SSE
+# (this service is a Spring MVC web app). Auto-configures the SSE transport + collects ToolCallbackProviders.
+spring-ai-starter-mcp-server-webmvc = { group = "org.springframework.ai", name = "spring-ai-starter-mcp-server-webmvc" }
 # MinIO Java SDK (Phase 4B): read the regulation corpus objects from the S3-compatible store.
 minio = { group = "io.minio", name = "minio", version.ref = "minio" }
 

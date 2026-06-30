@@ -48,6 +48,15 @@ spring:
         dimensions: 768
         distance-type: COSINE_DISTANCE
         index-type: HNSW
+    mcp:
+      server:
+        # MCP server (Phase 4F): exposes the platform @Tool beans over Spring MVC SSE so an external MCP
+        # client can list + call them. Endpoints: GET /sse (stream), POST /mcp/message (tool calls). The
+        # tool capability is advertised automatically because a ToolCallbackProvider bean is present.
+        enabled: true
+        name: dolos-platform-tools
+        version: 1.0.0
+        type: SYNC
 
 # Dolos RAG configuration (Phase 4B): the regulation corpus lives in an S3-compatible MinIO bucket;
 # ingestion reads every object, parses it with Tika, chunks + embeds it, and stores vectors in pgvector.
@@ -98,4 +107,4 @@ management:
 info:
   app:
     name: ${spring.application.name}
-    phase: "4E"
+    phase: "4F"

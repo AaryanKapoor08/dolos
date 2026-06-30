@@ -39,6 +39,11 @@ dependencies {
     // MinIO client (Phase 4B): the RAG source corpus lives in an S3-compatible bucket.
     implementation(libs.minio)
 
+    // MCP server (Phase 4F): exposes the platform @Tool beans (PlatformTools) to external MCP clients
+    // over Spring MVC SSE (/sse + /mcp/message). Auto-configures the transport and collects the
+    // ToolCallbackProvider bean wired in McpToolsConfig.
+    implementation(libs.spring.ai.starter.mcp.server.webmvc)
+
     // Structured (JSON) logging — see src/main/resources/logback-spring.xml.
     implementation(libs.logstash.logback.encoder)
 
