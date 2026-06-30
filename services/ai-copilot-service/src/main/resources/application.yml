@@ -1,0 +1,48 @@
+spring:
+  application:
+    name: ai-copilot-service
+  threads:
+    virtual:
+      # Java 21 virtual threads: chat requests block on the (slow) local model call.
+      enabled: true
+  ai:
+    ollama:
+      # Host default; the container overrides via SPRING_AI_OLLAMA_BASE_URL (see services.yml).
+      base-url: http://localhost:11434
+      init:
+        # Models are pulled once by the compose `ollama-init` one-shot, not by the app — so Spring AI
+        # must not try to pull them on boot (which would otherwise block startup on a multi-GB download).
+        pull-model-strategy: never
+      chat:
+        options:
+          # The single knob that picks the chat model; swappable per laptop RAM/VRAM (decision H) or to
+          # a cloud model later. Overridable via OLLAMA_CHAT_MODEL. Default is llama3.2 (3B, ~4 GiB to
+          # run, tool-calling capable for 4D); llama3.1 (8B) needs ~6.2 GiB — too big for this box's
+          # Docker VM, so it's a swap on a machine with more RAM.
+          model: ${OLLAMA_CHAT_MODEL:llama3.2}
+          # Low temperature: investigative answers should be steady, not creative.
+          temperature: 0.2
+      embedding:
+        options:
+          # Wired now so the RAG ingestion (4B) finds it ready; nomic-embed-text = 768 dimensions.
+          model: ${OLLAMA_EMBED_MODEL:nomic-embed-text}
+
+server:
+  port: 8090
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: always
+  info:
+    env:
+      enabled: true
+
+info:
+  app:
+    name: ${spring.application.name}
+    phase: "4A"

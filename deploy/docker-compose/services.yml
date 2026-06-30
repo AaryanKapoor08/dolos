@@ -204,6 +204,35 @@ services:
     networks:
       - dolos
 
+  # AI copilot (Phase 4): Spring AI over a local Ollama model. 4A serves POST /api/copilot/chat;
+  # later steps add RAG (pgvector), tool-calling, an investigate-alert agent and an MCP server.
+  # Gated on `ollama-init` finishing so the chat/embedding models are present before it serves.
+  ai-copilot-service:
+    build:
+      context: ../..
+      dockerfile: services/ai-copilot-service/Dockerfile
+    image: dolos/ai-copilot-service:0.0.1-SNAPSHOT
+    container_name: dolos-ai-copilot-service
+    restart: unless-stopped
+    depends_on:
+      ollama:
+        condition: service_healthy
+      ollama-init:
+        condition: service_completed_successfully
+    ports:
+      - "8090:8090"
+    environment:
+      # Reach the Ollama model server by its compose DNS name on the shared `dolos` network.
+      SPRING_AI_OLLAMA_BASE_URL: http://ollama:11434
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8090/actuator/health | grep -q '\"status\":\"UP\"' || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 40s
+    networks:
+      - dolos
+
   # Bulk CSV feed (Phase 1G): Apache NiFi watches a host folder and turns each dropped CSV
   # into a bulk NDJSON POST to ingestion-service. Runs UNSECURED over HTTP so the bootstrap
   # can drive the REST API anonymously — local $0 dev only, never production.

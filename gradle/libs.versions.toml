@@ -35,10 +35,14 @@ axon = "4.11.4"
 # riskier direction. Spring Boot's dependency-management pins Flowable's transitive Spring libs to ours.
 flowable = "7.1.0"
 
+# AI copilot (Phase 4) — ai-copilot-service: Spring AI ChatClient/RAG/tools/MCP over a local Ollama.
+# 1.0.0 is the first GA (May 2025) and the line that pairs with Spring Boot 3.4.x (1.1.x targets Boot
+# 3.5). The BOM aligns every spring-ai-* starter; GA renamed the starters to spring-ai-starter-*.
+springAi = "1.0.0"
+
 # Forward-looking (wired in later; verify when adopted)
 springCloud = "2024.0.0"        # Spring Cloud (Gateway/Eureka/Config); pairs with Spring Boot 3.4.x
 testcontainers = "1.21.3"       # used by the slice-e2e module (Phase 1F)
-# springAi   = "1.0.0"          # verify when adopted
 # grpc       = "1.6x.x"         # verify when adopted
 
 [libraries]
@@ -75,6 +79,11 @@ axon-test = { group = "org.axonframework", name = "axon-test" }
 
 # Flowable (Phase 3D) — the process-engine-only starter (BPMN; no CMMN/DMN) keeps the table set small.
 flowable-spring-boot-starter-process = { group = "org.flowable", name = "flowable-spring-boot-starter-process", version.ref = "flowable" }
+
+# Spring AI (Phase 4) — ai-copilot-service. The BOM aligns all spring-ai-* artifacts; the starters
+# omit their own version. 4A wires the Ollama chat model; 4B+ add pgvector + tika + mcp from this BOM.
+spring-ai-bom = { group = "org.springframework.ai", name = "spring-ai-bom", version.ref = "springAi" }
+spring-ai-starter-model-ollama = { group = "org.springframework.ai", name = "spring-ai-starter-model-ollama" }
 
 # Forward-looking BOMs (uncomment + wire when needed)
 # spring-cloud-bom = { group = "org.springframework.cloud", name = "spring-cloud-dependencies", version.ref = "springCloud" }
