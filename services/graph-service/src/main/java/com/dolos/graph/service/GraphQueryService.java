@@ -52,7 +52,18 @@ public class GraphQueryService {
                                 + "RETURN b.id AS counterparty, t.amount AS amount, t.ts AS ts ORDER BY t.ts",
                         accountId);
 
-        return new NeighborhoodResponse(accountId, owners, devices, outgoing, incoming);
+        // Ring membership comes straight from the :IN_RING markers written by ring detection (Phase 2E),
+        // so the copilot can answer "is this account in a ring?" without re-running cycle detection.
+        List<String> rings =
+                new ArrayList<>(
+                        neo4j.query("MATCH (:Account {id: $id})-[:IN_RING]->(r:Ring) RETURN r.id AS id")
+                                .bind(accountId).to("id")
+                                .fetchAs(String.class)
+                                .mappedBy((t, r) -> r.get("id").asString())
+                                .all());
+
+        return new NeighborhoodResponse(
+                accountId, !rings.isEmpty(), rings, owners, devices, outgoing, incoming);
     }
 
     private List<EdgeView> edges(String cypher, String accountId) {

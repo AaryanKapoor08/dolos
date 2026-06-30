@@ -8,9 +8,11 @@ import com.dolos.transaction.domain.Direction;
 import com.dolos.transaction.domain.TransactionEntity;
 import com.dolos.transaction.repo.TransactionRepository;
 import java.time.Instant;
+import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -69,5 +71,19 @@ public class TransactionService {
                 .findById(id)
                 .map(TransactionMapper::toResponse)
                 .orElseThrow(() -> new TransactionNotFoundException(id));
+    }
+
+    /**
+     * The most recent transactions for an account, newest first, capped at {@code limit}. Backs the
+     * copilot's {@code getTransactionHistory} tool (Phase 4D); an account with no transactions yields
+     * an empty list rather than a 404, so callers treat "unknown" and "no activity" uniformly.
+     */
+    @Transactional(readOnly = true)
+    public List<TransactionResponse> findByAccount(String accountId, int limit) {
+        return repository
+                .findByAccountIdOrderByOccurredAtDesc(accountId, PageRequest.of(0, limit))
+                .stream()
+                .map(TransactionMapper::toResponse)
+                .toList();
     }
 }
