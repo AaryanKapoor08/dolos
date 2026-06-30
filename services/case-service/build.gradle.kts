@@ -22,6 +22,8 @@ dependencies {
     implementation(platform(libs.axon.bom))
 
     implementation(project(":libs:dolos-common"))
+    // The Kafka integration schema (Phase 3E): consume AlertRaised, publish the case events.
+    implementation(project(":libs:dolos-events"))
 
     implementation("org.springframework.boot:spring-boot-starter-web")
     implementation("org.springframework.boot:spring-boot-starter-actuator")
@@ -37,6 +39,10 @@ dependencies {
     // Flowable (Phase 3D): the embedded BPMN process engine in the workflow module. Postgres-backed on
     // the same datasource; Flyway owns its tables (V3) so its database-schema-update stays off.
     implementation(libs.flowable.spring.boot.starter.process)
+
+    // Spring Kafka (Phase 3E): the integration module's inbound AlertRaised consumer (header-less JSON,
+    // virtual-thread idempotent consumer) and the outbound case-event producer.
+    implementation("org.springframework.kafka:spring-kafka")
 
     // Persistence: JPA/Hibernate hosts both the Axon event store and the CaseView read model, in
     // case-service's own Flyway-managed `casework` schema on PostgreSQL.

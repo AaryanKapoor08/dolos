@@ -29,6 +29,12 @@ spring:
     schemas: casework
     default-schema: casework
     locations: classpath:db/migration
+  kafka:
+    # Host default (Redpanda external listener); container overrides via SPRING_KAFKA_BOOTSTRAP_SERVERS.
+    bootstrap-servers: localhost:19092
+    consumer:
+      # Own group, earliest — drains the AlertRaised backlog on first start (Phase 3E).
+      group-id: case-service
 
 # Axon Framework (Phase 3B/3C): event store + token store on the JPA/Postgres tables above (decision
 # G — no Axon Server container). Disabling the Axon Server connector makes Axon fall back to the
@@ -59,6 +65,13 @@ flowable:
     enabled: false
   eventregistry:
     enabled: false
+
+# Dolos policy (Phase 3E): only HIGH alerts (score at/above this) auto-open an investigation case;
+# alert-service raises alerts from score 60, so 80 keeps routine alerts on the queue and reserves a
+# case for the severe ones (ring alerts, stacked typologies).
+dolos:
+  case:
+    high-score-threshold: 80
 
 server:
   port: 8086
