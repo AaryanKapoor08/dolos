@@ -62,6 +62,8 @@ drools-xml-support = { group = "org.drools", name = "drools-xml-support", versio
 # The BOM aligns all spring-modulith-* artifacts; the starters omit their own version.
 spring-modulith-bom = { group = "org.springframework.modulith", name = "spring-modulith-bom", version.ref = "springModulith" }
 spring-modulith-starter-core = { group = "org.springframework.modulith", name = "spring-modulith-starter-core" }
+# Event-publication registry on JPA (Phase 3E) — the transactional outbox for case events.
+spring-modulith-starter-jpa = { group = "org.springframework.modulith", name = "spring-modulith-starter-jpa" }
 spring-modulith-starter-test = { group = "org.springframework.modulith", name = "spring-modulith-starter-test" }
 spring-modulith-docs = { group = "org.springframework.modulith", name = "spring-modulith-docs" }
 

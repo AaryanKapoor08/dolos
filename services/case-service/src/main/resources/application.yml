@@ -35,6 +35,11 @@ spring:
     consumer:
       # Own group, earliest — drains the AlertRaised backlog on first start (Phase 3E).
       group-id: case-service
+  modulith:
+    events:
+      # The transactional outbox (Phase 3E): on startup, resubmit any publications left incomplete by a
+      # broker outage, so case events reach Kafka at least once across a blip.
+      republish-outstanding-events-on-restart: true
 
 # Axon Framework (Phase 3B/3C): event store + token store on the JPA/Postgres tables above (decision
 # G — no Axon Server container). Disabling the Axon Server connector makes Axon fall back to the
@@ -42,6 +47,13 @@ spring:
 axon:
   axonserver:
     enabled: false
+  eventhandling:
+    processors:
+      # The outbound relay (Phase 3E) runs as a SUBSCRIBING processor: synchronously, inside the
+      # command's transaction, so the Modulith outbox row is written in the same tx as the event store.
+      # (The CaseView projection stays a tracking processor — async, replayable.)
+      case-integration:
+        mode: subscribing
   serializer:
     # Use Jackson everywhere instead of Axon's default XStream: our events/commands are Java records,
     # and XStream cannot reflectively (de)serialize records on JDK 17+ ("can't get field offset on a

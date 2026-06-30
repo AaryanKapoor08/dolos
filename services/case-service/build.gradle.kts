@@ -31,6 +31,9 @@ dependencies {
 
     // Spring Modulith: module model, runtime support, and the verification/observability core.
     implementation(libs.spring.modulith.starter.core)
+    // Spring Modulith event-publication registry on JPA (Phase 3E): the transactional outbox that
+    // persists each case-event publication in the same tx as the state change, then publishes to Kafka.
+    implementation(libs.spring.modulith.starter.jpa)
 
     // Axon Framework: the Case aggregate (command side, 3B) + the CaseView projection (query side, 3C).
     // The JPA event store lives on Postgres (decision G) — Axon Server is disabled in application.yml.

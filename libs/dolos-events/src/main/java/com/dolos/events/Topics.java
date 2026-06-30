@@ -18,5 +18,20 @@ public final class Topics {
     /** Mule/cash-out rings detected by graph-service from the transaction graph (Phase 2E). */
     public static final String RINGS_DETECTED = "rings.detected";
 
+    // Case lifecycle events, published by case-service via the Spring Modulith outbox (Phase 3E).
+    // One type per topic (the wire is header-less JSON, so a topic carries a single event type).
+
+    /** A case was opened (from a HIGH alert or by an analyst). */
+    public static final String CASES_OPENED = "cases.opened";
+
+    /** A case was escalated to a senior analyst. */
+    public static final String CASES_ESCALATED = "cases.escalated";
+
+    /** A SAR/STR report was filed for a case. */
+    public static final String CASES_REPORTED = "cases.reported";
+
+    /** A case was closed (terminal). */
+    public static final String CASES_CLOSED = "cases.closed";
+
     private Topics() {}
 }
