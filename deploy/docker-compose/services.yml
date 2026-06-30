@@ -166,6 +166,35 @@ services:
     networks:
       - dolos
 
+  # Case management (Phase 3): the Spring Modulith case-service. Hosts the Axon event-sourced Case
+  # aggregate + CQRS read model on its own `casework` schema (event store + token store + CaseView).
+  # 3B/3C need only Postgres; Kafka (AlertRaised -> OpenCase) is wired in 3E.
+  case-service:
+    build:
+      context: ../..
+      dockerfile: services/case-service/Dockerfile
+    image: dolos/case-service:0.0.1-SNAPSHOT
+    container_name: dolos-case-service
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "8086:8086"
+    environment:
+      # Reach Postgres by its compose DNS name; Flyway reuses this datasource (own `casework` schema).
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-dolos}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-dolos}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-dolos}
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8086/actuator/health | grep -q '\"status\":\"UP\"' || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 40s
+    networks:
+      - dolos
+
   # Bulk CSV feed (Phase 1G): Apache NiFi watches a host folder and turns each dropped CSV
   # into a bulk NDJSON POST to ingestion-service. Runs UNSECURED over HTTP so the bootstrap
   # can drive the REST API anonymously — local $0 dev only, never production.

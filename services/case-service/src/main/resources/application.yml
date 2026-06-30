@@ -5,6 +5,45 @@ spring:
     virtual:
       # Java 21 virtual threads for request handling and the (Phase 3E) blocking Kafka consumer path.
       enabled: true
+  datasource:
+    # Host default; the container overrides via SPRING_DATASOURCE_* (see services.yml).
+    url: jdbc:postgresql://localhost:5432/dolos
+    username: dolos
+    password: dolos
+  jpa:
+    # Flyway owns the schema (the Axon event store + the CaseView read model); Hibernate neither
+    # creates nor mutates it — it just maps the Axon entities and CaseView onto the existing tables.
+    hibernate:
+      ddl-auto: none
+    open-in-view: false
+    properties:
+      hibernate:
+        # Qualify every entity table (Axon's + CaseView) with this service's own schema.
+        default_schema: casework
+        jdbc:
+          time_zone: UTC
+  flyway:
+    enabled: true
+    # Own schema so services can share the `dolos` database without colliding. "casework" rather than
+    # "case" because the latter is a reserved word in both Java and SQL.
+    schemas: casework
+    default-schema: casework
+    locations: classpath:db/migration
+
+# Axon Framework (Phase 3B/3C): event store + token store on the JPA/Postgres tables above (decision
+# G — no Axon Server container). Disabling the Axon Server connector makes Axon fall back to the
+# embedded JPA event store and JPA token store.
+axon:
+  axonserver:
+    enabled: false
+  serializer:
+    # Use Jackson everywhere instead of Axon's default XStream: our events/commands are Java records,
+    # and XStream cannot reflectively (de)serialize records on JDK 17+ ("can't get field offset on a
+    # record class"). Jackson maps records natively (we compile with -parameters). Payloads are stored
+    # as JSON bytes in the event store's oid columns.
+    general: jackson
+    events: jackson
+    messages: jackson
 
 server:
   port: 8086
@@ -24,4 +63,4 @@ management:
 info:
   app:
     name: ${spring.application.name}
-    phase: "3A"
+    phase: "3B"

@@ -18,6 +18,8 @@ plugins {
 dependencies {
     // Align all spring-modulith-* artifacts; Boot 3.4 does not manage Modulith itself.
     implementation(platform(libs.spring.modulith.bom))
+    // Align all axon-* artifacts (CQRS + Event Sourcing, Phase 3B/3C).
+    implementation(platform(libs.axon.bom))
 
     implementation(project(":libs:dolos-common"))
 
@@ -28,6 +30,17 @@ dependencies {
     // Spring Modulith: module model, runtime support, and the verification/observability core.
     implementation(libs.spring.modulith.starter.core)
 
+    // Axon Framework: the Case aggregate (command side, 3B) + the CaseView projection (query side, 3C).
+    // The JPA event store lives on Postgres (decision G) — Axon Server is disabled in application.yml.
+    implementation(libs.axon.spring.boot.starter)
+
+    // Persistence: JPA/Hibernate hosts both the Axon event store and the CaseView read model, in
+    // case-service's own Flyway-managed `casework` schema on PostgreSQL.
+    implementation("org.springframework.boot:spring-boot-starter-data-jpa")
+    implementation("org.flywaydb:flyway-core")
+    implementation("org.flywaydb:flyway-database-postgresql")
+    runtimeOnly("org.postgresql:postgresql")
+
     // Structured (JSON) logging — see src/main/resources/logback-spring.xml.
     implementation(libs.logstash.logback.encoder)
 
@@ -36,4 +49,6 @@ dependencies {
     testImplementation(libs.spring.modulith.starter.test)
     // The Documenter (C4/PlantUML module docs) lives in spring-modulith-docs.
     testImplementation(libs.spring.modulith.docs)
+    // Axon's AggregateTestFixture for given-when-then aggregate unit tests (no DB, no Spring context).
+    testImplementation(libs.axon.test)
 }
