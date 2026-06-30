@@ -237,6 +237,9 @@ services:
       DOLOS_RAG_MINIO_ENDPOINT: http://minio:9000
       DOLOS_RAG_MINIO_ACCESS_KEY: ${MINIO_ROOT_USER:-dolos}
       DOLOS_RAG_MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD:-dolosminio}
+      # The investigate-alert agent (Phase 4E) writes drafted SARs to this MinIO bucket (created on
+      # startup if absent); kept separate from the read-only `regulations` corpus.
+      DOLOS_INVESTIGATION_SAR_BUCKET: sar-drafts
       # Platform tools (Phase 4D): reach the downstream services by compose DNS. case-service is secured,
       # so the copilot obtains a service token via the dolos-copilot client-credentials grant on Keycloak.
       DOLOS_PLATFORM_TRANSACTION_BASE_URL: http://transaction-service:8081

@@ -2,10 +2,13 @@ package com.dolos.copilot.tools;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.util.Map;
+import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.ai.tool.annotation.ToolParam;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestClient;
@@ -121,6 +124,76 @@ public class PlatformTools {
         } catch (Exception e) {
             return error("graph-service", e);
         }
+    }
+
+    // --- Agent-support operations (Phase 4E) ------------------------------------------------------
+    // Typed platform access for the investigate-alert agent. Unlike the @Tool methods above (which the
+    // model invokes and which return raw JSON or a friendly error string), these are called directly by
+    // the orchestrator and throw on failure so a broken step aborts the investigation loudly.
+
+    /**
+     * Look up a single alert by id from the alert queue, returning its JSON node, or {@code null} if no
+     * such alert exists. The alert read API only lists (risk-sorted, paged), so this pulls a large page
+     * and filters by {@code alertId}.
+     */
+    public JsonNode findAlert(UUID alertId) {
+        try {
+            String body =
+                    alertClient.get().uri("/api/alerts?size=2000").retrieve().body(String.class);
+            if (body == null || body.isBlank()) {
+                return null;
+            }
+            JsonNode root = mapper.readTree(body);
+            JsonNode content = root.has("content") ? root.get("content") : root;
+            for (JsonNode alert : content) {
+                if (alertId.toString().equals(alert.path("alertId").asText())) {
+                    return alert;
+                }
+            }
+            return null;
+        } catch (Exception e) {
+            throw new IllegalStateException("could not read alerts from alert-service: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Find the case opened from {@code alertId} (case-service links each case to its opening alert),
+     * returning the case id, or {@code null} if no case has been opened for the alert yet. Carries the
+     * service token since case-service is secured (Phase 3F).
+     */
+    public UUID findCaseIdByAlert(UUID alertId) {
+        try {
+            String body =
+                    caseClient
+                            .get()
+                            .uri("/api/cases")
+                            .headers(h -> h.setBearerAuth(tokens.accessToken()))
+                            .retrieve()
+                            .body(String.class);
+            if (body == null || body.isBlank()) {
+                return null;
+            }
+            for (JsonNode c : mapper.readTree(body)) {
+                if (alertId.toString().equals(c.path("alertId").asText())) {
+                    return UUID.fromString(c.path("caseId").asText());
+                }
+            }
+            return null;
+        } catch (Exception e) {
+            throw new IllegalStateException("could not read cases from case-service: " + e.getMessage(), e);
+        }
+    }
+
+    /** Attach a note (e.g. a pointer to the drafted SAR) to a case as evidence. case-service is secured. */
+    public void addCaseEvidence(UUID caseId, String note) {
+        caseClient
+                .post()
+                .uri("/api/cases/{id}/evidence", caseId)
+                .headers(h -> h.setBearerAuth(tokens.accessToken()))
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(Map.of("note", note, "addedBy", "copilot"))
+                .retrieve()
+                .toBodilessEntity();
     }
 
     private static String error(String service, Exception e) {

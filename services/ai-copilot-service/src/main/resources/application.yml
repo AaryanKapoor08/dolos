@@ -74,6 +74,11 @@ dolos:
       token-uri: http://localhost:8087/realms/dolos/protocol/openid-connect/token
       client-id: dolos-copilot
       client-secret: dolos-copilot-secret
+  # The investigate-alert agent (Phase 4E) writes drafted SARs to this MinIO bucket (reusing the RAG
+  # MinIO endpoint/credentials above); it is created on startup if absent. Override via
+  # DOLOS_INVESTIGATION_SAR_BUCKET (see services.yml).
+  investigation:
+    sar-bucket: sar-drafts
 
 server:
   port: 8090
@@ -93,4 +98,4 @@ management:
 info:
   app:
     name: ${spring.application.name}
-    phase: "4D"
+    phase: "4E"
