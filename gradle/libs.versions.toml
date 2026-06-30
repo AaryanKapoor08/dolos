@@ -22,11 +22,17 @@ logstashLogbackEncoder = "8.0"  # JSON structured logging encoder for Logback
 # Rules engine (Phase 2B) — Drools 8.44 runs on Java 21 and pairs with Spring Boot 3.4.x.
 drools = "8.44.0.Final"
 
+# Modular monolith + CQRS/Event Sourcing (Phase 3) — case-service.
+# Spring Modulith 1.3.x is the line that pairs with Spring Boot 3.4 (2.x targets Boot 3.5);
+# Axon 4.11.x is the line that pairs with Spring Boot 3.4 (4.12+/4.13 target 3.5). Both verified
+# on Maven Central against this stack.
+springModulith = "1.3.12"
+axon = "4.11.4"
+
 # Forward-looking (wired in later; verify when adopted)
 springCloud = "2024.0.0"        # Spring Cloud (Gateway/Eureka/Config); pairs with Spring Boot 3.4.x
 testcontainers = "1.21.3"       # used by the slice-e2e module (Phase 1F)
 # springAi   = "1.0.0"          # verify when adopted
-# axon       = "4.10.x"         # verify when adopted
 # grpc       = "1.6x.x"         # verify when adopted
 
 [libraries]
@@ -45,6 +51,19 @@ logstash-logback-encoder = { group = "net.logstash.logback", name = "logstash-lo
 drools-engine = { group = "org.drools", name = "drools-engine", version.ref = "drools" }
 drools-mvel = { group = "org.drools", name = "drools-mvel", version.ref = "drools" }
 drools-xml-support = { group = "org.drools", name = "drools-xml-support", version.ref = "drools" }
+
+# Spring Modulith (Phase 3A) — case-service module boundaries, verification, and C4 docs.
+# The BOM aligns all spring-modulith-* artifacts; the starters omit their own version.
+spring-modulith-bom = { group = "org.springframework.modulith", name = "spring-modulith-bom", version.ref = "springModulith" }
+spring-modulith-starter-core = { group = "org.springframework.modulith", name = "spring-modulith-starter-core" }
+spring-modulith-starter-test = { group = "org.springframework.modulith", name = "spring-modulith-starter-test" }
+spring-modulith-docs = { group = "org.springframework.modulith", name = "spring-modulith-docs" }
+
+# Axon Framework (Phase 3B/3C) — CQRS + Event Sourcing with the JPA event store on Postgres.
+# The BOM aligns axon-*; the starter omits its own version. axon-test brings the AggregateTestFixture.
+axon-bom = { group = "org.axonframework", name = "axon-bom", version.ref = "axon" }
+axon-spring-boot-starter = { group = "org.axonframework", name = "axon-spring-boot-starter" }
+axon-test = { group = "org.axonframework", name = "axon-test" }
 
 # Forward-looking BOMs (uncomment + wire when needed)
 # spring-cloud-bom = { group = "org.springframework.cloud", name = "spring-cloud-dependencies", version.ref = "springCloud" }

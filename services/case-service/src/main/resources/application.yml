@@ -1,0 +1,27 @@
+spring:
+  application:
+    name: case-service
+  threads:
+    virtual:
+      # Java 21 virtual threads for request handling and the (Phase 3E) blocking Kafka consumer path.
+      enabled: true
+
+server:
+  port: 8086
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: always
+  info:
+    env:
+      enabled: true
+
+info:
+  app:
+    name: ${spring.application.name}
+    phase: "3A"
