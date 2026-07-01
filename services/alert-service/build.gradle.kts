@@ -22,6 +22,10 @@ dependencies {
     implementation(libs.spring.cloud.starter.netflix.eureka.client)
     implementation(libs.spring.cloud.starter.config)
 
+    // Resource-server security (Phase 5B): every endpoint needs a valid Keycloak JWT; realm roles map
+    // to ROLE_*. Brings Spring Security transitively via the shared starter.
+    implementation(project(":libs:dolos-security"))
+
     // Resilience4j around the gRPC call: circuit breaker + retry + fallback (needs AOP for the annotations).
     implementation("io.github.resilience4j:resilience4j-spring-boot3:2.2.0")
     implementation("org.springframework.boot:spring-boot-starter-aop")

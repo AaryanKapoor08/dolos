@@ -23,6 +23,15 @@ spring:
         default.value.serde: org.apache.kafka.common.serialization.Serdes$StringSerde
         # Commit/flush promptly so scores appear without waiting the 30s default — snappier demo/test.
         commit.interval.ms: 200
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          # Phase 5B: validate bearer JWTs against the Keycloak `dolos` realm's signing keys, so this
+          # service independently rejects an invalid token (defence in depth behind the gateway). Host
+          # default; the container overrides via SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI.
+          # (HTTP/Actuator only; the gRPC ScoringService on :9090 is unaffected by the servlet chain.)
+          jwk-set-uri: http://localhost:8087/realms/dolos/protocol/openid-connect/certs
 
 server:
   port: 8083

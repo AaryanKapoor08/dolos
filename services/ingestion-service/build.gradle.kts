@@ -22,6 +22,11 @@ dependencies {
     implementation(libs.spring.cloud.starter.netflix.eureka.client)
     implementation(libs.spring.cloud.starter.config)
 
+    // Reactive resource-server security (Phase 5B): the shared DolosReactiveSecurityAutoConfiguration
+    // (WebFlux) provides the Keycloak realm-role converter; this module adds a chain that leaves the
+    // NiFi-facing /ingest path open and requires a JWT elsewhere.
+    implementation(project(":libs:dolos-security"))
+
     implementation("org.springframework.boot:spring-boot-starter-webflux")
     implementation("org.springframework.boot:spring-boot-starter-data-r2dbc")
     implementation("org.springframework.boot:spring-boot-starter-actuator")

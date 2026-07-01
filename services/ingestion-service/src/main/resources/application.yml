@@ -27,6 +27,14 @@ spring:
   kafka:
     # Host default (Redpanda external listener); container overrides via SPRING_KAFKA_BOOTSTRAP_SERVERS.
     bootstrap-servers: localhost:19092
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          # Phase 5B: validate bearer JWTs against the Keycloak `dolos` realm's signing keys. Presence of
+          # this property also activates IngestionSecurityConfig (which keeps /ingest open for NiFi). Host
+          # default; the container overrides via SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI.
+          jwk-set-uri: http://localhost:8087/realms/dolos/protocol/openid-connect/certs
 
 server:
   port: 8082

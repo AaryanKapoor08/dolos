@@ -9,6 +9,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.ai.tool.annotation.ToolParam;
 import org.springframework.http.MediaType;
+import org.springframework.http.client.ClientHttpRequestInterceptor;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestClient;
@@ -18,10 +19,11 @@ import org.springframework.web.client.RestClient;
  * Dolos from real data instead of guessing. Each tool is a thin REST call to a downstream service and
  * returns the raw JSON response, which the model reads to compose its answer.
  *
- * <p>case-service is secured (Phase 3F), so {@link #getCaseDetails} attaches a Keycloak service token
- * from {@link ServiceTokenProvider}. Every tool catches transport/HTTP errors and returns a short
- * human-readable message rather than throwing, so a down dependency degrades the answer instead of
- * failing the whole turn.
+ * <p>Every downstream is secured as of Phase 5B, so each client carries a Keycloak service token from
+ * {@link ServiceTokenProvider}: the transaction/alert/graph clients attach it via a request interceptor
+ * installed in the constructor, and the case-service calls attach it explicitly. Every tool catches
+ * transport/HTTP errors and returns a short human-readable message rather than throwing, so a down
+ * dependency degrades the answer instead of failing the whole turn.
  */
 @Component
 public class PlatformTools {
@@ -41,9 +43,20 @@ public class PlatformTools {
             PlatformProperties props,
             ServiceTokenProvider tokens,
             ObjectMapper mapper) {
-        this.transactionClient = builder.clone().baseUrl(props.transactionBaseUrl()).build();
-        this.alertClient = builder.clone().baseUrl(props.alertBaseUrl()).build();
-        this.graphClient = builder.clone().baseUrl(props.graphBaseUrl()).build();
+        // The transaction/alert/graph services became JWT resource servers in 5B; attach the service
+        // token to every call via an interceptor. (case-service calls carry it explicitly, since some
+        // are agent-support methods that already set the header.)
+        ClientHttpRequestInterceptor bearer =
+                (request, body, execution) -> {
+                    request.getHeaders().setBearerAuth(tokens.accessToken());
+                    return execution.execute(request, body);
+                };
+        this.transactionClient =
+                builder.clone().baseUrl(props.transactionBaseUrl()).requestInterceptor(bearer).build();
+        this.alertClient =
+                builder.clone().baseUrl(props.alertBaseUrl()).requestInterceptor(bearer).build();
+        this.graphClient =
+                builder.clone().baseUrl(props.graphBaseUrl()).requestInterceptor(bearer).build();
         this.caseClient = builder.clone().baseUrl(props.caseBaseUrl()).build();
         this.tokens = tokens;
         this.mapper = mapper;

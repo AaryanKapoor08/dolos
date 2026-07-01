@@ -76,6 +76,22 @@ class TransactionSliceE2ETest {
     private static final String FLYWAY =
             "org.springframework.boot.autoconfigure.flyway.FlywayAutoConfiguration";
 
+    // Phase 5B secured every service, but this in-process slice boots them WITHOUT Keycloak (file config
+    // is disabled below, so no jwk-set-uri) and calls them unauthenticated. Disable the whole security
+    // stack per web type so the resource-server chains (which would 401 the calls, or fail to start with
+    // no JwtDecoder) never install. Production wiring is Docker-verified with real tokens through the
+    // gateway.
+    private static final String SECURITY_SERVLET =
+            "org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration,"
+                    + "org.springframework.boot.autoconfigure.security.servlet.UserDetailsServiceAutoConfiguration,"
+                    + "org.springframework.boot.autoconfigure.security.oauth2.resource.servlet.OAuth2ResourceServerAutoConfiguration,"
+                    + "com.dolos.security.DolosSecurityAutoConfiguration";
+    private static final String SECURITY_REACTIVE =
+            "org.springframework.boot.autoconfigure.security.reactive.ReactiveSecurityAutoConfiguration,"
+                    + "org.springframework.boot.autoconfigure.security.reactive.ReactiveUserDetailsServiceAutoConfiguration,"
+                    + "org.springframework.boot.autoconfigure.security.oauth2.resource.reactive.ReactiveOAuth2ResourceServerAutoConfiguration,"
+                    + "com.dolos.security.DolosReactiveSecurityAutoConfiguration";
+
     private static final String NO_CONFIG = "optional:classpath:/__e2e_none__/";
 
     static final PostgreSQLContainer<?> POSTGRES =
@@ -152,7 +168,7 @@ class TransactionSliceE2ETest {
                 boot(
                         AlertServiceApplication.class,
                         WebApplicationType.SERVLET,
-                        exclude(R2DBC, FLYWAY),
+                        exclude(R2DBC, FLYWAY, SECURITY_SERVLET),
                         "--server.port=0",
                         "--spring.datasource.url=" + jdbcUrl,
                         "--spring.datasource.username=" + user,
@@ -168,7 +184,7 @@ class TransactionSliceE2ETest {
                 boot(
                         IngestionServiceApplication.class,
                         WebApplicationType.REACTIVE,
-                        exclude(JDBC, JPA, FLYWAY),
+                        exclude(JDBC, JPA, FLYWAY, SECURITY_REACTIVE),
                         "--server.port=0",
                         "--spring.r2dbc.url=" + r2dbcUrl,
                         "--spring.r2dbc.username=" + user,

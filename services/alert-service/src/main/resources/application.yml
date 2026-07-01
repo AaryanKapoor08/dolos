@@ -39,6 +39,14 @@ spring:
     consumer:
       # Consumer group for the alert path (Phase 1E); own group, earliest, drains the backlog.
       group-id: alert-service
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          # Phase 5B: validate bearer JWTs against the Keycloak `dolos` realm's signing keys, so this
+          # service independently rejects an invalid token (defence in depth behind the gateway). Host
+          # default; the container overrides via SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI.
+          jwk-set-uri: http://localhost:8087/realms/dolos/protocol/openid-connect/certs
 
 # Alert policy: a RiskScored at/above this score raises an alert. Configurable; v0 LARGE_AMOUNT = 60.
 dolos:

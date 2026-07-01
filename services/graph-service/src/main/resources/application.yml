@@ -23,6 +23,14 @@ spring:
       # Own group, earliest: graph-service drains the topic backlog the first time it runs so the
       # graph reflects transactions received before this service existed.
       group-id: graph-service
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          # Phase 5B: validate bearer JWTs against the Keycloak `dolos` realm's signing keys, so this
+          # service independently rejects an invalid token (defence in depth behind the gateway). Host
+          # default; the container overrides via SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI.
+          jwk-set-uri: http://localhost:8087/realms/dolos/protocol/openid-connect/certs
 
 # Ring detection policy (Phase 2E): find directed TRANSACTED chains of this many hops that return
 # to the origin account (A->B->C->...->A) — a classic layered cash-out / mule ring.
