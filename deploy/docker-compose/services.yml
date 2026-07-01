@@ -505,6 +505,46 @@ services:
     networks:
       - dolos
 
+  # Legacy partner feed (Phase 6D): a code-defined Apache Camel route polls a bind-mounted inbox for
+  # fixed-width partner files, translates each valid record into the canonical TransactionReceived event
+  # (dead-lettering malformed ones), and produces to Redpanda's transactions.received — the same pipeline
+  # entry point as ingestion-service + NiFi. This is the CODE-defined integration; NiFi is the visual one.
+  legacy-adapter-service:
+    build:
+      context: ../..
+      dockerfile: services/legacy-adapter-service/Dockerfile
+    image: dolos/legacy-adapter-service:0.0.1-SNAPSHOT
+    container_name: dolos-legacy-adapter-service
+    restart: unless-stopped
+    depends_on:
+      redpanda:
+        condition: service_healthy
+      config-server:
+        condition: service_healthy
+    ports:
+      - "8094:8094"
+    environment:
+      # Produce the canonical event over the broker's internal listener on the shared `dolos` network.
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: redpanda:9092
+      # The Camel file poller reads the bind-mounted inbox (below) at this container path.
+      DOLOS_LEGACY_INBOUND_DIR: /data/legacy-inbound
+      # Spring Cloud edge (5A): register with Eureka + pull centralized config (optional fallback).
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discovery-server:8761/eureka/
+      SPRING_CONFIG_IMPORT: optional:configserver:http://config-server:8888
+      # Resource-server security (5B): validate JWTs against the dolos realm, reached by compose DNS.
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI: http://keycloak:8080/realms/dolos/protocol/openid-connect/certs
+    volumes:
+      # The watched drop folder (host bind): drop a fixed-width partner file here to feed the pipeline.
+      - ../legacy-feed/incoming:/data/legacy-inbound
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8094/actuator/health | grep -q '\"status\":\"UP\"' || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 40s
+    networks:
+      - dolos
+
   # Bulk CSV feed (Phase 1G): Apache NiFi watches a host folder and turns each dropped CSV
   # into a bulk NDJSON POST to ingestion-service. Runs UNSECURED over HTTP so the bootstrap
   # can drive the REST API anonymously — local $0 dev only, never production.

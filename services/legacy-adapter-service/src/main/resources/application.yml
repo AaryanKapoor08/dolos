@@ -1,0 +1,57 @@
+spring:
+  application:
+    name: legacy-adapter-service
+  config:
+    # Spring Cloud Config client (Phase 5A): pull centralized config; `optional:` so the service still
+    # boots from this local file if config-server is down. Container overrides the host (see services.yml).
+    import: "optional:configserver:http://localhost:8888"
+  threads:
+    virtual:
+      enabled: true
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          # Phase 5B: validate bearer JWTs against the Keycloak `dolos` realm. Host default; container
+          # overrides via SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI.
+          jwk-set-uri: http://localhost:8087/realms/dolos/protocol/openid-connect/certs
+
+server:
+  port: 8094
+
+# Camel (Phase 6D). The Kafka broker list is set globally on the component so the route URI stays clean
+# (`kafka:transactions.received`); the container overrides the brokers via SPRING_KAFKA_BOOTSTRAP_SERVERS.
+camel:
+  component:
+    kafka:
+      brokers: ${SPRING_KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+      # Producer reliability parity with ingestion-service: wait for all in-sync replicas.
+      request-required-acks: all
+
+# legacy-adapter knobs (Phase 6D).
+dolos:
+  legacy:
+    # The polled inbox. Host default is a local relative dir (Camel auto-creates it); the container
+    # overrides via DOLOS_LEGACY_INBOUND_DIR to the bind-mounted /data/legacy-inbound (see services.yml).
+    inbound-dir: ${DOLOS_LEGACY_INBOUND_DIR:data/legacy-inbound}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,refresh,prometheus,metrics
+  endpoint:
+    health:
+      show-details: always
+
+info:
+  app:
+    name: ${spring.application.name}
+    phase: "6D"
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+  instance:
+    prefer-ip-address: true

@@ -53,4 +53,7 @@ include("services:case-service")
 include("services:ai-copilot-service")
 // Phase 6B — batch reporting: nightly Spring Batch SAR/STR filing job -> MinIO.
 include("services:reporting-service")
+// Phase 6D — enterprise integration: a code-defined Apache Camel EIP route ingesting a legacy
+// fixed-width partner feed and translating it to the canonical TransactionReceived event.
+include("services:legacy-adapter-service")
 include("tests:slice-e2e")

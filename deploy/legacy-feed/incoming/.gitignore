@@ -1,0 +1,6 @@
+# Files dropped here are runtime input consumed by the Camel legacy-adapter route (moved to
+# .done/.error, malformed records dead-lettered to .rejected) — never commit them. The versioned
+# reference sample lives one level up at deploy/legacy-feed/sample-partner-feed.txt.
+*
+!.gitkeep
+!.gitignore

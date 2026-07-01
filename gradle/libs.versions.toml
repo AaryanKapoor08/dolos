@@ -45,6 +45,11 @@ minio = "8.5.17"               # MinIO Java SDK — RAG source-document object s
 # (Moorgate) is the line that pairs with Spring Boot 3.4.x; the BOM aligns every spring-cloud-* artifact.
 springCloud = "2024.0.0"        # Spring Cloud (Gateway/Eureka/Config); pairs with Spring Boot 3.4.x
 testcontainers = "1.21.3"       # used by the slice-e2e module (Phase 1F)
+# Enterprise integration (Phase 6D) — legacy-adapter-service: a code-defined Apache Camel EIP route
+# (fixed-width partner feed -> canonical TransactionReceived -> Kafka). 4.10.x is the LTS line that
+# pairs with Spring Boot 3.4.x (4.8 pairs 3.3; 4.12+ target 3.5) — verified on Maven Central. The
+# camel-spring-boot-bom aligns every camel-*-starter, so the starters omit their own version.
+camel = "4.10.9"
 # grpc       = "1.6x.x"         # verify when adopted
 
 [libraries]
@@ -106,6 +111,10 @@ spring-cloud-starter-config = { group = "org.springframework.cloud", name = "spr
 # Phase 5B — reactive API gateway + per-route Resilience4j circuit breakers (BOM-managed, no versions).
 spring-cloud-starter-gateway = { group = "org.springframework.cloud", name = "spring-cloud-starter-gateway" }
 spring-cloud-starter-circuitbreaker-reactor-resilience4j = { group = "org.springframework.cloud", name = "spring-cloud-starter-circuitbreaker-reactor-resilience4j" }
+
+# Apache Camel (Phase 6D) — legacy-adapter-service. The BOM aligns all camel-*-starter artifacts; the
+# starters (imported per-module) omit their own version. Imported via platform(libs.camel.spring.boot.bom).
+camel-spring-boot-bom = { group = "org.apache.camel.springboot", name = "camel-spring-boot-bom", version.ref = "camel" }
 
 # Forward-looking BOMs (uncomment + wire when needed)
 # testcontainers-bom = { group = "org.testcontainers", name = "testcontainers-bom", version.ref = "testcontainers" }

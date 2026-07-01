@@ -1,0 +1,2 @@
+# Watched inbox for the Camel legacy-adapter route (Phase 6D), bind-mounted to /data/legacy-inbound.
+# Drop a fixed-width partner file here (e.g. a copy of ../sample-partner-feed.txt) to feed the pipeline.
