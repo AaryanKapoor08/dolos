@@ -40,4 +40,8 @@ dependencies {
     implementation(libs.logstash.logback.encoder)
 
     testImplementation("org.springframework.boot:spring-boot-starter-test")
+    // Real Postgres in a container for the persistence integration test (Phase 6E). SKIPS locally when
+    // Docker is unreachable (disabledWithoutDocker); CI (Linux Docker) runs it for real.
+    testImplementation("org.testcontainers:junit-jupiter:1.21.3")
+    testImplementation("org.testcontainers:postgresql:1.21.3")
 }
