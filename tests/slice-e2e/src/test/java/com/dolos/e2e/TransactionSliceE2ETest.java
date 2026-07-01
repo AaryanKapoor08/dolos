@@ -85,11 +85,15 @@ class TransactionSliceE2ETest {
             "org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration,"
                     + "org.springframework.boot.autoconfigure.security.servlet.UserDetailsServiceAutoConfiguration,"
                     + "org.springframework.boot.autoconfigure.security.oauth2.resource.servlet.OAuth2ResourceServerAutoConfiguration,"
+                    // Actuator's management security chain needs an HttpSecurity bean, which the excluded
+                    // SecurityAutoConfiguration would have provided — exclude it too, or it fails to wire.
+                    + "org.springframework.boot.actuate.autoconfigure.security.servlet.ManagementWebSecurityAutoConfiguration,"
                     + "com.dolos.security.DolosSecurityAutoConfiguration";
     private static final String SECURITY_REACTIVE =
             "org.springframework.boot.autoconfigure.security.reactive.ReactiveSecurityAutoConfiguration,"
                     + "org.springframework.boot.autoconfigure.security.reactive.ReactiveUserDetailsServiceAutoConfiguration,"
                     + "org.springframework.boot.autoconfigure.security.oauth2.resource.reactive.ReactiveOAuth2ResourceServerAutoConfiguration,"
+                    + "org.springframework.boot.actuate.autoconfigure.security.reactive.ReactiveManagementWebSecurityAutoConfiguration,"
                     + "com.dolos.security.DolosReactiveSecurityAutoConfiguration";
 
     private static final String NO_CONFIG = "optional:classpath:/__e2e_none__/";
