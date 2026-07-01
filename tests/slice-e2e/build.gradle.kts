@@ -38,11 +38,3 @@ dependencies {
     testImplementation("org.testcontainers:postgresql")
     testImplementation("org.testcontainers:redpanda")
 }
-
-// The four slice services run in-process; surface their stdout so a pipeline stall (no score / no
-// alert) is diagnosable from the CI build log. Temporary diagnostic — noisy but invaluable here.
-tasks.named<Test>("test") {
-    testLogging {
-        showStandardStreams = true
-    }
-}

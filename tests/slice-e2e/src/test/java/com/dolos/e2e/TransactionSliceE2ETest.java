@@ -46,7 +46,7 @@ import org.testcontainers.utility.DockerImageName;
  * for the resulting alert to surface at alert-service's {@code GET /api/alerts}:
  *
  * <pre>{@code
- * POST /ingest/transactions  ->  TransactionReceived  ->  RiskScored (score 60)  ->  Alert + AlertRaised
+ * POST /ingest/transactions  ->  TransactionReceived  ->  RiskScored (score 100)  ->  Alert + AlertRaised
  * }</pre>
  *
  * <h2>Why the unusual wiring</h2>
@@ -267,7 +267,11 @@ class TransactionSliceE2ETest {
                             assertThat(alerts.statusCode()).isEqualTo(200);
                             assertThat(alerts.body()).contains(transactionId);
                             assertThat(alerts.body()).contains(account);
-                            assertThat(alerts.body()).contains("\"score\":60");
+                            // A $15k DEBIT to a brand-new counterparty trips LARGE_AMOUNT (60) AND
+                            // NEW_PAYEE_DRAIN (45) → capped at 100 (HIGH) once Drools (Phase 2B) + the
+                            // new-payee typology landed. The account is fresh each run, so this is stable.
+                            assertThat(alerts.body()).contains("\"score\":100");
+                            assertThat(alerts.body()).contains("\"severity\":\"HIGH\"");
                         });
     }
 
