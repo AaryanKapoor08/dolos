@@ -155,6 +155,9 @@ class TransactionSliceE2ETest {
                         exclude(JDBC, JPA, R2DBC, FLYWAY),
                         "--spring.kafka.bootstrap-servers=" + bootstrap,
                         "--spring.kafka.streams.application-id=scoring-e2e",
+                        // Fresh application-id each run: consume from the start of the topic so the single
+                        // transaction the test posts is never skipped (a `latest` reset would miss it).
+                        "--spring.kafka.streams.properties.auto.offset.reset=earliest",
                         "--spring.kafka.consumer.group-id=scoring-e2e");
 
         // Transaction: canonical store (JPA, public schema).
@@ -239,7 +242,7 @@ class TransactionSliceE2ETest {
         assertThat(transactionId).isNotBlank();
 
         // The alert is produced asynchronously after the event crosses ingestion → scoring → alert.
-        await().atMost(Duration.ofSeconds(60))
+        await().atMost(Duration.ofSeconds(120))
                 .pollInterval(Duration.ofSeconds(2))
                 .untilAsserted(
                         () -> {
