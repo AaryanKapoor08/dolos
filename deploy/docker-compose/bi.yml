@@ -1,0 +1,117 @@
+# Dolos — business intelligence (Phase 6C): Apache Superset over the read models.
+#
+# Superset keeps its own metadata in a dedicated `superset` database on the shared Postgres server, and
+# reads the Dolos read models (alert / reporting / casework schemas in the `dolos` database) as its
+# analytics source. Attaches to the external `dolos` network so it reaches Postgres by DNS name.
+#
+#   docker compose -f infra.yml -f bi.yml up -d
+# (Superset is RAM-heavy; on this box bring it up with the pipeline stopped — it only needs Postgres +
+# the data already persisted there.)
+#
+# Host: Superset UI http://localhost:8095 (admin/admin). 8095 avoids the Redpanda Console on :8088.
+
+services:
+  # One-shot: ensure the dedicated `superset` metadata database exists on the shared Postgres server
+  # (Superset's own tables live there, separate from the `dolos` analytics database). Idempotent.
+  superset-db-init:
+    image: pgvector/pgvector:pg16
+    container_name: dolos-superset-db-init
+    restart: "no"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      PGPASSWORD: ${POSTGRES_PASSWORD:-dolos}
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - "psql -h postgres -U ${POSTGRES_USER:-dolos} -tc \"SELECT 1 FROM pg_database WHERE datname='superset'\" | grep -q 1
+         || psql -h postgres -U ${POSTGRES_USER:-dolos} -c 'CREATE DATABASE superset'"
+    networks:
+      - dolos
+
+  # One-shot: migrate Superset's metadata schema, create the admin user, initialize roles/perms.
+  superset-init:
+    build:
+      context: ../superset
+      dockerfile: Dockerfile
+    image: dolos/superset:4.1.1
+    container_name: dolos-superset-init
+    restart: "no"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      superset-db-init:
+        condition: service_completed_successfully
+    environment:
+      SUPERSET_SECRET_KEY: ${SUPERSET_SECRET_KEY:-dolos-superset-dev-secret-change-me-please-32b}
+    volumes:
+      - ../superset/superset_config.py:/app/pythonpath/superset_config.py:ro
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - "superset db upgrade &&
+         (superset fab create-admin --username admin --firstname Dolos --lastname Admin
+            --email admin@dolos.local --password admin || true) &&
+         superset init &&
+         echo 'superset-init done'"
+    networks:
+      - dolos
+
+  # The Superset web server.
+  superset:
+    image: dolos/superset:4.1.1
+    container_name: dolos-superset
+    restart: unless-stopped
+    depends_on:
+      superset-init:
+        condition: service_completed_successfully
+    environment:
+      SUPERSET_SECRET_KEY: ${SUPERSET_SECRET_KEY:-dolos-superset-dev-secret-change-me-please-32b}
+    volumes:
+      - ../superset/superset_config.py:/app/pythonpath/superset_config.py:ro
+    command:
+      - "gunicorn"
+      - "--bind"
+      - "0.0.0.0:8088"
+      - "--workers"
+      - "2"
+      - "--worker-class"
+      - "gthread"
+      - "--threads"
+      - "4"
+      - "--timeout"
+      - "120"
+      - "superset.app:create_app()"
+    ports:
+      - "8095:8088"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8088/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 40s
+    networks:
+      - dolos
+
+  # One-shot: provision the DB connection + datasets + charts + the overview dashboard (idempotent).
+  superset-provision:
+    image: dolos/superset:4.1.1
+    container_name: dolos-superset-provision
+    restart: "no"
+    depends_on:
+      superset:
+        condition: service_healthy
+    environment:
+      SUPERSET_URL: http://superset:8088
+      SUPERSET_ADMIN: admin
+      SUPERSET_ADMIN_PASSWORD: admin
+      DOLOS_ANALYTICS_URI: postgresql+psycopg2://${POSTGRES_USER:-dolos}:${POSTGRES_PASSWORD:-dolos}@postgres:5432/${POSTGRES_DB:-dolos}
+    volumes:
+      - ../superset/provision.py:/provision/provision.py:ro
+    entrypoint: ["python", "/provision/provision.py"]
+    networks:
+      - dolos
+
+networks:
+  dolos:
+    name: dolos
+    external: true
