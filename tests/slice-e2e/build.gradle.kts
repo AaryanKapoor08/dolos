@@ -18,6 +18,12 @@ dependencies {
     testImplementation(platform("org.springframework.boot:spring-boot-dependencies:" + libs.versions.springBoot.get()))
     testImplementation(platform("org.testcontainers:testcontainers-bom:" + libs.versions.testcontainers.get()))
 
+    // Canonical topic names (Topics) + the Kafka AdminClient used to pre-create the pipeline topics
+    // before the Streams app boots. These are `implementation` deps of the services, so not exposed
+    // transitively to this module's compile classpath — declare them directly.
+    testImplementation(project(":libs:dolos-events"))
+    testImplementation("org.apache.kafka:kafka-clients")
+
     // The services under test — booted in-process and wired to the Testcontainers infra.
     testImplementation(project(":services:ingestion-service"))
     testImplementation(project(":services:transaction-service"))

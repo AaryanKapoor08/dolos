@@ -5,6 +5,7 @@ import static org.awaitility.Awaitility.await;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import com.dolos.alert.AlertServiceApplication;
+import com.dolos.events.Topics;
 import com.dolos.ingestion.IngestionServiceApplication;
 import com.dolos.scoring.ScoringServiceApplication;
 import com.dolos.transaction.TransactionServiceApplication;
@@ -17,8 +18,13 @@ import java.nio.charset.StandardCharsets;
 import java.sql.Connection;
 import java.sql.Statement;
 import java.time.Duration;
+import java.util.List;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import org.apache.kafka.clients.admin.Admin;
+import org.apache.kafka.clients.admin.AdminClientConfig;
+import org.apache.kafka.clients.admin.NewTopic;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -133,6 +139,11 @@ class TransactionSliceE2ETest {
         prepareSchemas();
 
         String bootstrap = stripScheme(REDPANDA.getBootstrapServers());
+        // Pre-create the pipeline topics BEFORE booting scoring: its Kafka Streams topology aborts with
+        // INCOMPLETE_SOURCE_TOPIC_METADATA (and shuts the client down permanently) if its source topic
+        // doesn't exist at startup. In the real deployment the topic already exists; here scoring boots
+        // first, so we create them up-front.
+        createTopics(bootstrap);
         String jdbcUrl = POSTGRES.getJdbcUrl();
         String user = POSTGRES.getUsername();
         String pass = POSTGRES.getPassword();
@@ -338,5 +349,22 @@ class TransactionSliceE2ETest {
     private static String stripScheme(String bootstrap) {
         int idx = bootstrap.indexOf("://");
         return idx < 0 ? bootstrap : bootstrap.substring(idx + 3);
+    }
+
+    /**
+     * Pre-creates the pipeline topics the slice publishes/consumes. Kafka Streams (scoring) refuses to
+     * start against a non-existent source topic, so this must run before the services boot. Uses the
+     * canonical {@link Topics} names; single partition + replica is all a single-broker Redpanda needs.
+     */
+    private static void createTopics(String bootstrap) throws Exception {
+        try (Admin admin = Admin.create(Map.of(AdminClientConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrap))) {
+            admin.createTopics(
+                            List.of(
+                                    new NewTopic(Topics.TRANSACTIONS_RECEIVED, 1, (short) 1),
+                                    new NewTopic(Topics.RISK_SCORED, 1, (short) 1),
+                                    new NewTopic(Topics.ALERTS_RAISED, 1, (short) 1)))
+                    .all()
+                    .get();
+        }
     }
 }
