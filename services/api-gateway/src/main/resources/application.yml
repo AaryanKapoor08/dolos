@@ -1,0 +1,140 @@
+spring:
+  application:
+    name: api-gateway
+  config:
+    # Spring Cloud Config client (Phase 5A): pull centralized config from config-server. `optional:`
+    # so the gateway still boots from this local application.yml if the config server is unreachable;
+    # the container overrides the host to config-server:8888 (see services.yml).
+    import: "optional:configserver:http://localhost:8888"
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          # Phase 5B: validate the edge bearer JWT against the Keycloak `dolos` realm's signing keys.
+          # jwk-set-uri (not issuer-uri) keeps validation signature-only, so the gateway boots without
+          # Keycloak up. Host default; the container overrides via
+          # SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI (see services.yml).
+          jwk-set-uri: http://localhost:8087/realms/dolos/protocol/openid-connect/certs
+  cloud:
+    gateway:
+      # Explicit routes by path prefix, resolved to service instances via Eureka (lb://). No StripPrefix:
+      # each downstream already serves under the same prefix (e.g. transaction at /api/transactions). Each
+      # route is wrapped in a Resilience4j circuit breaker that forwards to a local 503 fallback when open.
+      routes:
+        - id: transaction-service
+          uri: lb://transaction-service
+          predicates:
+            - Path=/api/transactions/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: transactionCb
+                fallbackUri: forward:/fallback/transaction-service
+        - id: alert-service
+          uri: lb://alert-service
+          predicates:
+            - Path=/api/alerts/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: alertCb
+                fallbackUri: forward:/fallback/alert-service
+        - id: graph-service
+          uri: lb://graph-service
+          predicates:
+            - Path=/api/graph/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: graphCb
+                fallbackUri: forward:/fallback/graph-service
+        - id: case-service
+          uri: lb://case-service
+          predicates:
+            - Path=/api/cases/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: caseCb
+                fallbackUri: forward:/fallback/case-service
+        - id: ai-copilot-service
+          uri: lb://ai-copilot-service
+          predicates:
+            - Path=/api/copilot/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: copilotCb
+                fallbackUri: forward:/fallback/ai-copilot-service
+        - id: ingestion-service
+          uri: lb://ingestion-service
+          predicates:
+            - Path=/ingest/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: ingestionCb
+                fallbackUri: forward:/fallback/ingestion-service
+
+# Per-route circuit breakers (Phase 5B). One shared `default` config; each route's named instance
+# inherits it. The reactive breaker pairs with a TimeLimiter, so a slow/hung downstream also trips it.
+resilience4j:
+  circuitbreaker:
+    configs:
+      default:
+        slidingWindowSize: 10
+        minimumNumberOfCalls: 5
+        failureRateThreshold: 50
+        slowCallRateThreshold: 100
+        slowCallDurationThreshold: 3s
+        waitDurationInOpenState: 10s
+        permittedNumberOfCallsInHalfOpenState: 3
+    instances:
+      transactionCb: { baseConfig: default }
+      alertCb: { baseConfig: default }
+      graphCb: { baseConfig: default }
+      caseCb: { baseConfig: default }
+      copilotCb: { baseConfig: default }
+      ingestionCb: { baseConfig: default }
+  timelimiter:
+    configs:
+      default:
+        timeoutDuration: 5s
+    instances:
+      transactionCb: { baseConfig: default }
+      alertCb: { baseConfig: default }
+      graphCb: { baseConfig: default }
+      caseCb: { baseConfig: default }
+      copilotCb: { baseConfig: default }
+      ingestionCb: { baseConfig: default }
+
+server:
+  port: 8080
+
+management:
+  endpoints:
+    web:
+      exposure:
+        # health + info, plus refresh (centralized config) and gateway (inspect the live route table).
+        include: health,info,refresh,gateway
+  endpoint:
+    health:
+      show-details: always
+  info:
+    env:
+      enabled: true
+
+info:
+  app:
+    name: ${spring.application.name}
+    phase: "5B"
+
+# Register with the Eureka service registry (Phase 5A) so lb:// route targets resolve to live instances.
+# Host default points at localhost; the container overrides EUREKA_CLIENT_SERVICEURL_DEFAULTZONE.
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+  instance:
+    # Advertise by IP — the default OS hostname (container id) isn't resolvable by Eureka peers.
+    prefer-ip-address: true

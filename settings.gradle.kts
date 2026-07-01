@@ -39,6 +39,8 @@ include("libs:dolos-security")
 // Phase 5A — Spring Cloud edge: service registry + centralized config server.
 include("services:discovery-server")
 include("services:config-server")
+// Phase 5B — secured reactive API gateway (edge routing + JWT + circuit breakers).
+include("services:api-gateway")
 include("services:transaction-service")
 include("services:ingestion-service")
 include("services:scoring-service")

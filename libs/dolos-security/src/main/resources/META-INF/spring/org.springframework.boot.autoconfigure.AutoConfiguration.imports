@@ -1,1 +1,2 @@
 com.dolos.security.DolosSecurityAutoConfiguration
+com.dolos.security.DolosReactiveSecurityAutoConfiguration

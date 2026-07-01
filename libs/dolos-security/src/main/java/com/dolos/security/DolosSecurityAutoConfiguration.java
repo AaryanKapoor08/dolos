@@ -2,6 +2,8 @@ package com.dolos.security;
 
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication.Type;
 import org.springframework.context.annotation.Bean;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -21,9 +23,14 @@ import org.springframework.security.web.SecurityFilterChain;
  * everything else, and validates bearer JWTs with realm roles mapped to {@code ROLE_*} authorities.
  * {@link EnableMethodSecurity} turns on {@code @PreAuthorize} so individual actions can be role-gated
  * (e.g. escalate / file-report = senior only).
+ *
+ * <p>Guarded to SERVLET web apps: the reactive edge (api-gateway, ingestion-service) pulls the same
+ * starter transitively but is secured by {@link DolosReactiveSecurityAutoConfiguration} instead — the
+ * servlet {@code @EnableWebSecurity} would fail to apply in a WebFlux context.
  */
 @AutoConfiguration
 @ConditionalOnClass(SecurityFilterChain.class)
+@ConditionalOnWebApplication(type = Type.SERVLET)
 @EnableWebSecurity
 @EnableMethodSecurity
 public class DolosSecurityAutoConfiguration {

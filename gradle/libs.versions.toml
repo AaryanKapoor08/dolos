@@ -103,6 +103,9 @@ spring-cloud-starter-netflix-eureka-server = { group = "org.springframework.clou
 spring-cloud-starter-netflix-eureka-client = { group = "org.springframework.cloud", name = "spring-cloud-starter-netflix-eureka-client" }
 spring-cloud-config-server = { group = "org.springframework.cloud", name = "spring-cloud-config-server" }
 spring-cloud-starter-config = { group = "org.springframework.cloud", name = "spring-cloud-starter-config" }
+# Phase 5B — reactive API gateway + per-route Resilience4j circuit breakers (BOM-managed, no versions).
+spring-cloud-starter-gateway = { group = "org.springframework.cloud", name = "spring-cloud-starter-gateway" }
+spring-cloud-starter-circuitbreaker-reactor-resilience4j = { group = "org.springframework.cloud", name = "spring-cloud-starter-circuitbreaker-reactor-resilience4j" }
 
 # Forward-looking BOMs (uncomment + wire when needed)
 # testcontainers-bom = { group = "org.testcontainers", name = "testcontainers-bom", version.ref = "testcontainers" }

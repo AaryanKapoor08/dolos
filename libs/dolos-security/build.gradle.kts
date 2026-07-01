@@ -22,6 +22,11 @@ dependencies {
     // Exposed to consumers (api): applying this starter brings resource-server + security with it.
     api("org.springframework.boot:spring-boot-starter-oauth2-resource-server")
     api("org.springframework.boot:spring-boot-starter-security")
+    // Reactive edge support (Phase 5B): the reactive auto-config references WebFlux/Reactor types
+    // (ServerHttpSecurity, Mono). compileOnly — it must NOT leak WebFlux onto the servlet services that
+    // apply this starter via `implementation`; the reactive apps (api-gateway, ingestion) bring WebFlux
+    // themselves, and the reactive auto-config only activates in a REACTIVE web app.
+    compileOnly("org.springframework.boot:spring-boot-starter-webflux")
     // We provide an auto-configuration; the processor emits its metadata.
     annotationProcessor("org.springframework.boot:spring-boot-configuration-processor")
 
