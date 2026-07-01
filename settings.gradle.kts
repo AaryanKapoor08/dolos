@@ -51,4 +51,6 @@ include("services:graph-service")
 include("services:alert-service")
 include("services:case-service")
 include("services:ai-copilot-service")
+// Phase 6B — batch reporting: nightly Spring Batch SAR/STR filing job -> MinIO.
+include("services:reporting-service")
 include("tests:slice-e2e")

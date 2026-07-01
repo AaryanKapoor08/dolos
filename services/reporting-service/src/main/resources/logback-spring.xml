@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Structured (JSON) logging — observability baseline (matches every other Dolos service).
+  LogstashEncoder emits one JSON object per line and includes every MDC entry, so the
+  Micrometer-populated traceId/spanId (Phase 6A) land in each line and correlate to Tempo/Loki.
+-->
+<configuration>
+    <appender name="JSON" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder class="net.logstash.logback.encoder.LogstashEncoder">
+            <customFields>{"service":"reporting-service"}</customFields>
+        </encoder>
+    </appender>
+
+    <root level="INFO">
+        <appender-ref ref="JSON"/>
+    </root>
+</configuration>

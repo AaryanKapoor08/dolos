@@ -87,6 +87,16 @@ spring:
               args:
                 name: ingestionCb
                 fallbackUri: forward:/fallback/ingestion-service
+        # Regulatory reporting (6B): trigger/list filed SAR/STR reports via the batch reporting-service.
+        - id: reporting-service
+          uri: lb://reporting-service
+          predicates:
+            - Path=/api/reports/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: reportingCb
+                fallbackUri: forward:/fallback/reporting-service
         # Live push (5C): WebSocket/STOMP upgrade to notification-service. `lb:ws://` tells the gateway's
         # websocket routing filter to load-balance then upgrade. No CircuitBreaker/TimeLimiter — those wrap
         # request/response and would break a long-lived socket. The handshake is permitted at the edge (a

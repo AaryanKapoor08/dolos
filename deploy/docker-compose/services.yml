@@ -463,6 +463,48 @@ services:
     networks:
       - dolos
 
+  # Regulatory reporting (Phase 6B): a Spring Batch service whose nightly job reads HIGH-severity alerts
+  # from the alert read model, builds a SAR/STR for each, and files it to MinIO + its own `reporting`
+  # schema (which also holds the Spring Batch metadata tables). The FORMAL filing vs. the copilot DRAFT.
+  reporting-service:
+    build:
+      context: ../..
+      dockerfile: services/reporting-service/Dockerfile
+    image: dolos/reporting-service:0.0.1-SNAPSHOT
+    container_name: dolos-reporting-service
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      minio:
+        condition: service_started
+      config-server:
+        condition: service_healthy
+    ports:
+      - "8093:8093"
+    environment:
+      # Reach Postgres by its compose DNS name; Flyway owns the `reporting` schema (Batch meta + reports).
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-dolos}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-dolos}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-dolos}
+      # The filed-reports object store on MinIO, reached by compose DNS.
+      DOLOS_REPORTING_MINIO_ENDPOINT: http://minio:9000
+      DOLOS_REPORTING_MINIO_ACCESS_KEY: ${MINIO_ROOT_USER:-dolos}
+      DOLOS_REPORTING_MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD:-dolosminio}
+      # Spring Cloud edge (5A): register with Eureka + pull centralized config (optional fallback).
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discovery-server:8761/eureka/
+      SPRING_CONFIG_IMPORT: optional:configserver:http://config-server:8888
+      # Resource-server security (5B): validate JWTs against the dolos realm, reached by compose DNS.
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI: http://keycloak:8080/realms/dolos/protocol/openid-connect/certs
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8093/actuator/health | grep -q '\"status\":\"UP\"' || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 40s
+    networks:
+      - dolos
+
   # Bulk CSV feed (Phase 1G): Apache NiFi watches a host folder and turns each dropped CSV
   # into a bulk NDJSON POST to ingestion-service. Runs UNSECURED over HTTP so the bootstrap
   # can drive the REST API anonymously — local $0 dev only, never production.

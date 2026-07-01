@@ -24,6 +24,7 @@ scrape_configs:
           - 'ai-copilot-service:8090'
           - 'notification-service:8091'
           - 'bff-service:8092'
+          - 'reporting-service:8093'
     relabel_configs:
       # Derive a friendly `service` label from the target host (e.g. alert-service:8084 -> alert-service).
       - source_labels: [__address__]
