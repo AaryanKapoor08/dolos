@@ -1,0 +1,98 @@
+# Dolos GraphQL BFF schema (Phase 5D).
+#
+# One aggregating graph for the Investigator Console: an Alert composes its Case, its triggering
+# Transaction, and its account's fraud-graph neighbourhood, so a single query fills a whole screen.
+# Timestamps are ISO-8601 strings; monetary/score values are strings/ints kept intentionally flat.
+
+type Query {
+  "The risk-sorted alert queue (highest score first)."
+  alertQueue(size: Int = 20): [Alert!]!
+  "A single alert by id."
+  alert(id: ID!): Alert
+  "A case with its full timeline."
+  case(id: ID!): Case
+  "A transaction by id."
+  transaction(id: ID!): Transaction
+  "An account's one-hop fraud-graph neighbourhood."
+  accountGraph(id: ID!): AccountGraph
+}
+
+type Mutation {
+  "Ask the AI copilot agent a natural-language question about the platform."
+  copilot(input: CopilotInput!): CopilotAnswer!
+}
+
+input CopilotInput {
+  question: String!
+}
+
+type Alert {
+  alertId: ID!
+  alertType: String
+  severity: String
+  title: String
+  transactionId: ID
+  accountId: String
+  score: Int!
+  reasons: [String!]!
+  detail: String
+  raisedAt: String
+  # Composed by the BFF, resolved only when selected:
+  case: Case
+  transaction: Transaction
+  accountGraph: AccountGraph
+}
+
+type Case {
+  caseId: ID!
+  status: String
+  alertId: ID
+  accountId: String
+  score: Int!
+  assignee: String
+  openedBy: String
+  openedAt: String
+  updatedAt: String
+  reportReference: String
+  resolution: String
+  timeline: [TimelineItem!]!
+}
+
+type TimelineItem {
+  sequence: Int!
+  type: String
+  summary: String
+  actor: String
+  occurredAt: String
+}
+
+type Transaction {
+  id: ID!
+  account: String
+  counterparty: String
+  amount: String
+  currency: String
+  direction: String
+  description: String
+  occurredAt: String
+}
+
+type AccountGraph {
+  accountId: ID!
+  inRing: Boolean!
+  rings: [String!]!
+  owners: [String!]!
+  devices: [String!]!
+  outgoing: [GraphEdge!]!
+  incoming: [GraphEdge!]!
+}
+
+type GraphEdge {
+  counterparty: String!
+  amount: String
+  occurredAt: String
+}
+
+type CopilotAnswer {
+  reply: String!
+}

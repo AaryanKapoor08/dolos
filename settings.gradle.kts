@@ -41,6 +41,9 @@ include("services:discovery-server")
 include("services:config-server")
 // Phase 5B — secured reactive API gateway (edge routing + JWT + circuit breakers).
 include("services:api-gateway")
+// Phase 5C/5D — live push (WebSocket/STOMP) + the GraphQL BFF aggregating the platform.
+include("services:notification-service")
+include("services:bff-service")
 include("services:transaction-service")
 include("services:ingestion-service")
 include("services:scoring-service")

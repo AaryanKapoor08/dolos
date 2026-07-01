@@ -1,0 +1,51 @@
+spring:
+  application:
+    name: bff-service
+  config:
+    # Spring Cloud Config client (Phase 5A): pull centralized config from config-server. `optional:` so
+    # the service still boots from this local application.yml if the config server is unreachable; the
+    # container overrides the host to config-server:8888 (see services.yml).
+    import: "optional:configserver:http://localhost:8888"
+  graphql:
+    graphiql:
+      # The in-browser GraphQL explorer at /graphiql — handy for the DoD query. Left open in security.
+      enabled: true
+    schema:
+      # Schema-first: load classpath:graphql/**/*.graphqls (the default), served over WebFlux.
+      locations: classpath:graphql/
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          # Phase 5D: validate bearer JWTs against the Keycloak `dolos` realm's keys. Host default; the
+          # container overrides via SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI.
+          jwk-set-uri: http://localhost:8087/realms/dolos/protocol/openid-connect/certs
+
+server:
+  port: 8092
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,refresh
+  endpoint:
+    health:
+      show-details: always
+  info:
+    env:
+      enabled: true
+
+info:
+  app:
+    name: ${spring.application.name}
+    phase: "5D"
+
+# Register with Eureka (Phase 5A) so the resolver WebClient can resolve lb://<service> targets. Host
+# default points at localhost; the container overrides EUREKA_CLIENT_SERVICEURL_DEFAULTZONE.
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+  instance:
+    prefer-ip-address: true

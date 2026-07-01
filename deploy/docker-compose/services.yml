@@ -335,6 +335,73 @@ services:
     networks:
       - dolos
 
+  # Live notifications (Phase 5C): consumes AlertRaised + the case lifecycle events off Redpanda and
+  # fans them out to the browser over WebSocket/STOMP (/topic/alerts, /topic/cases). Stateless — no DB.
+  # The gateway routes ws:// traffic here (lb:ws://notification-service) and leaves the handshake open.
+  notification-service:
+    build:
+      context: ../..
+      dockerfile: services/notification-service/Dockerfile
+    image: dolos/notification-service:0.0.1-SNAPSHOT
+    container_name: dolos-notification-service
+    restart: unless-stopped
+    depends_on:
+      redpanda:
+        condition: service_healthy
+      config-server:
+        condition: service_healthy
+    ports:
+      - "8091:8091"
+    environment:
+      # Consume the outcome events over the broker's internal listener on the shared `dolos` network.
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: redpanda:9092
+      # Spring Cloud edge (5A): register with Eureka + pull centralized config (optional fallback).
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discovery-server:8761/eureka/
+      SPRING_CONFIG_IMPORT: optional:configserver:http://config-server:8888
+      # Resource-server security (5C): validate JWTs against the dolos realm; /ws handshake stays open.
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI: http://keycloak:8080/realms/dolos/protocol/openid-connect/certs
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8091/actuator/health | grep -q '\"status\":\"UP\"' || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 40s
+    networks:
+      - dolos
+
+  # GraphQL BFF (Phase 5D): one aggregating GraphQL endpoint for the console. Reactive (WebFlux) — calls
+  # the business services over load-balanced WebClient and relays the caller's token. Stateless — no DB.
+  bff-service:
+    build:
+      context: ../..
+      dockerfile: services/bff-service/Dockerfile
+    image: dolos/bff-service:0.0.1-SNAPSHOT
+    container_name: dolos-bff-service
+    restart: unless-stopped
+    depends_on:
+      discovery-server:
+        condition: service_started
+      config-server:
+        condition: service_healthy
+      keycloak:
+        condition: service_started
+    ports:
+      - "8092:8092"
+    environment:
+      # Spring Cloud edge (5A): register with Eureka (enables lb:// WebClient) + pull centralized config.
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discovery-server:8761/eureka/
+      SPRING_CONFIG_IMPORT: optional:configserver:http://config-server:8888
+      # Reactive resource-server security (5D): validate JWTs against the dolos realm; GraphiQL stays open.
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI: http://keycloak:8080/realms/dolos/protocol/openid-connect/certs
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8092/actuator/health | grep -q '\"status\":\"UP\"' || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 40s
+    networks:
+      - dolos
+
   # AI copilot (Phase 4): Spring AI over a local Ollama model. 4A serves POST /api/copilot/chat;
   # later steps add RAG (pgvector), tool-calling, an investigate-alert agent and an MCP server.
   # Gated on `ollama-init` finishing so the chat/embedding models are present before it serves.

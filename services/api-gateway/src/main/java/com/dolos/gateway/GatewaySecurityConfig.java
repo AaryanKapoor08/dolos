@@ -3,6 +3,7 @@ package com.dolos.gateway;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.convert.converter.Converter;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.security.config.web.server.ServerHttpSecurity;
 import org.springframework.security.oauth2.jwt.Jwt;
@@ -31,12 +32,22 @@ public class GatewaySecurityConfig {
                 .authorizeExchange(
                         exchange ->
                                 exchange
+                                        // CORS preflight (5E): unauthenticated OPTIONS must pass so the
+                                        // browser can complete the preflight before the real request.
+                                        .pathMatchers(HttpMethod.OPTIONS, "/**")
+                                        .permitAll()
                                         .pathMatchers(
                                                 "/actuator/health",
                                                 "/actuator/health/**",
                                                 "/actuator/info",
                                                 "/fallback/**",
-                                                "/ingest/**")
+                                                "/ingest/**",
+                                                // Live push (5C): the browser can't set Authorization on
+                                                // the WS upgrade, so the handshake is open at the edge.
+                                                "/ws/**",
+                                                // GraphiQL explorer UI (5D) is static; its queries to
+                                                // /graphql still carry a token and are authenticated.
+                                                "/graphiql/**")
                                         .permitAll()
                                         .anyExchange()
                                         .authenticated())

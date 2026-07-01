@@ -1,0 +1,58 @@
+spring:
+  application:
+    name: notification-service
+  config:
+    # Spring Cloud Config client (Phase 5A): pull centralized config from config-server. `optional:` so
+    # the service still boots from this local application.yml if the config server is unreachable; the
+    # container overrides the host to config-server:8888 (see services.yml).
+    import: "optional:configserver:http://localhost:8888"
+  threads:
+    virtual:
+      # Java 21 virtual threads for the blocking Kafka consumer path.
+      enabled: true
+  kafka:
+    # Host default (Redpanda external listener); container overrides via SPRING_KAFKA_BOOTSTRAP_SERVERS.
+    bootstrap-servers: localhost:19092
+    consumer:
+      # Own consumer group for the live-notification fan-out; earliest so a late subscriber still
+      # triggers on the drained backlog.
+      group-id: notification-service
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          # Phase 5C: validate bearer JWTs against the Keycloak `dolos` realm's keys (the /ws handshake
+          # is left open — see NotificationSecurityConfig). Host default; the container overrides via
+          # SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI.
+          jwk-set-uri: http://localhost:8087/realms/dolos/protocol/openid-connect/certs
+
+server:
+  port: 8091
+
+management:
+  endpoints:
+    web:
+      exposure:
+        # health + info, plus refresh so a centralized config change is picked up via POST /actuator/refresh.
+        include: health,info,refresh
+  endpoint:
+    health:
+      show-details: always
+  info:
+    env:
+      enabled: true
+
+info:
+  app:
+    name: ${spring.application.name}
+    phase: "5C"
+
+# Register with the Eureka service registry (Phase 5A). Host default points at localhost; on the Docker
+# network the container overrides EUREKA_CLIENT_SERVICEURL_DEFAULTZONE to discovery-server:8761.
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+  instance:
+    # Advertise by IP — the default OS hostname (container id) isn't resolvable by Eureka peers.
+    prefer-ip-address: true
