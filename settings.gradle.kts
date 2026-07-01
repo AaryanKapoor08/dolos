@@ -57,3 +57,6 @@ include("services:reporting-service")
 // fixed-width partner feed and translating it to the canonical TransactionReceived event.
 include("services:legacy-adapter-service")
 include("tests:slice-e2e")
+// Phase 6E — monorepo-wide architecture rules: one ArchUnit suite enforcing module isolation,
+// layering, boundary, and coding conventions across every service + lib.
+include("tests:architecture")
