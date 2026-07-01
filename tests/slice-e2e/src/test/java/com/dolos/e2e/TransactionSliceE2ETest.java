@@ -305,9 +305,15 @@ class TransactionSliceE2ETest {
 
     private static ConfigurableApplicationContext boot(
             Class<?> app, WebApplicationType web, String... args) {
-        String[] full = new String[args.length + 1];
+        String[] full = new String[args.length + 3];
+        // File config is switched off (below), which drops each service's `optional:configserver` import.
+        // spring-cloud-config-client is still on the classpath, and its import-check would then abort
+        // startup ("No spring.config.import ... configserver") — so disable the client + its import-check;
+        // this in-process slice provides all config via the command-line args, never a config server.
         full[0] = "--spring.config.location=" + NO_CONFIG;
-        System.arraycopy(args, 0, full, 1, args.length);
+        full[1] = "--spring.cloud.config.enabled=false";
+        full[2] = "--spring.cloud.config.import-check.enabled=false";
+        System.arraycopy(args, 0, full, 3, args.length);
         return new SpringApplicationBuilder(app).web(web).bannerMode(Banner.Mode.OFF).run(full);
     }
 
