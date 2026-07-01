@@ -141,13 +141,16 @@ class TransactionSliceE2ETest {
                         + POSTGRES.getDatabaseName()
                         + "?schema=ingestion";
 
-        // Scoring: pure consume → score → publish, no datastore.
+        // Scoring: pure consume → score → publish, no datastore. Its Kafka Streams topology needs an
+        // application-id; with file config disabled the usual `spring.application.name` fallback is gone,
+        // so set it explicitly (otherwise defaultKafkaStreamsConfig fails: "application-id is mandatory").
         scoring =
                 boot(
                         ScoringServiceApplication.class,
                         WebApplicationType.NONE,
                         exclude(JDBC, JPA, R2DBC, FLYWAY),
                         "--spring.kafka.bootstrap-servers=" + bootstrap,
+                        "--spring.kafka.streams.application-id=scoring-e2e",
                         "--spring.kafka.consumer.group-id=scoring-e2e");
 
         // Transaction: canonical store (JPA, public schema).
