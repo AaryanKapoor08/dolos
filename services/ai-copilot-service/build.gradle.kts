@@ -20,6 +20,9 @@ dependencies {
     implementation(libs.spring.cloud.starter.config)
 
     implementation(project(":libs:dolos-common"))
+    // Resource-server security (Phase 5B): every /api/copilot endpoint needs a valid Keycloak JWT; the
+    // MCP SSE endpoints stay open (see CopilotSecurityConfig). Brings Spring Security transitively.
+    implementation(project(":libs:dolos-security"))
 
     implementation("org.springframework.boot:spring-boot-starter-web")
     implementation("org.springframework.boot:spring-boot-starter-actuator")

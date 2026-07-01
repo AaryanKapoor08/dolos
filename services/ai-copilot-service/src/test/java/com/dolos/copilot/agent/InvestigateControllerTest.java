@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -23,6 +24,8 @@ import org.springframework.test.web.servlet.MockMvc;
  * any infrastructure. The live investigation loop is Docker-verified.
  */
 @WebMvcTest(InvestigateController.class)
+// Controller-contract slice: disable the Phase 5B resource-server filters (auth is Docker-verified).
+@AutoConfigureMockMvc(addFilters = false)
 class InvestigateControllerTest {
 
     @Autowired private MockMvc mvc;

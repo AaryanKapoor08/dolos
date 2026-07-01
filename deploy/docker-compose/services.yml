@@ -385,6 +385,8 @@ services:
       # Spring Cloud edge (5A): register with Eureka + pull centralized config (optional fallback).
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discovery-server:8761/eureka/
       SPRING_CONFIG_IMPORT: optional:configserver:http://config-server:8888
+      # Resource-server security (5B): validate JWTs against the dolos realm; MCP SSE stays open.
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI: http://keycloak:8080/realms/dolos/protocol/openid-connect/certs
     healthcheck:
       test: ["CMD-SHELL", "curl -fsS http://localhost:8090/actuator/health | grep -q '\"status\":\"UP\"' || exit 1"]
       interval: 10s

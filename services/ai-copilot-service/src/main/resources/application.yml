@@ -22,6 +22,15 @@ spring:
     schemas: copilot
     default-schema: copilot
     locations: classpath:db/migration
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          # Phase 5B: validate bearer JWTs against the Keycloak `dolos` realm's signing keys, so the
+          # /api/copilot endpoints reject an invalid token (the MCP SSE endpoints stay open — see
+          # CopilotSecurityConfig). Host default; the container overrides via
+          # SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI.
+          jwk-set-uri: http://localhost:8087/realms/dolos/protocol/openid-connect/certs
   ai:
     ollama:
       # Host default; the container overrides via SPRING_AI_OLLAMA_BASE_URL (see services.yml).

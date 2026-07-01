@@ -2,6 +2,7 @@ package com.dolos.security;
 
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication.Type;
 import org.springframework.context.annotation.Bean;
@@ -35,7 +36,14 @@ import org.springframework.security.web.SecurityFilterChain;
 @EnableMethodSecurity
 public class DolosSecurityAutoConfiguration {
 
+    /**
+     * The default servlet chain: authenticate everything but the actuator health/info probes. Marked
+     * {@link ConditionalOnMissingBean} so a service that needs different rules (e.g. ai-copilot leaving
+     * its MCP SSE endpoints open) can declare its own {@code SecurityFilterChain} and still reuse the
+     * shared {@link #jwtAuthenticationConverter()} bean.
+     */
     @Bean
+    @ConditionalOnMissingBean(SecurityFilterChain.class)
     public SecurityFilterChain dolosSecurityFilterChain(HttpSecurity http) throws Exception {
         http.csrf(csrf -> csrf.disable())
                 .sessionManagement(

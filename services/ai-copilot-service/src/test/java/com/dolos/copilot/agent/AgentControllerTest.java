@@ -7,6 +7,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -19,6 +20,8 @@ import org.springframework.test.web.servlet.MockMvc;
  * is Docker-verified.
  */
 @WebMvcTest(AgentController.class)
+// Controller-contract slice: disable the Phase 5B resource-server filters (auth is Docker-verified).
+@AutoConfigureMockMvc(addFilters = false)
 class AgentControllerTest {
 
     @Autowired private MockMvc mvc;
