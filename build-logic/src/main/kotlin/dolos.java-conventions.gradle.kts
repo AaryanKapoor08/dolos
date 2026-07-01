@@ -43,4 +43,12 @@ tasks.withType<JavaCompile>().configureEach {
 
 tasks.named<Test>("test") {
     useJUnitPlatform()
+    // Print full exception messages + causes + stack traces for failing tests, so a CI failure is
+    // diagnosable straight from the build log (the default format hides the message + cause chain).
+    testLogging {
+        exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
+        showExceptions = true
+        showCauses = true
+        showStackTraces = true
+    }
 }
