@@ -1,0 +1,144 @@
+# Dolos — observability backplane (Phase 6A).
+#
+# The distributed-tracing + logs + metrics + dashboards layer that sits behind the OpenTelemetry
+# instrumentation now wired into every Spring service (Micrometer Tracing -> OTLP, and the
+# /actuator/prometheus scrape endpoint). Attaches to the external `dolos` network so it can receive
+# spans from, scrape, and tail the services by their compose DNS names.
+#
+#   Tempo       — trace store; receives spans over OTLP (4317 gRPC / 4318 HTTP) from every service.
+#   Loki        — log store.
+#   Promtail    — tails every dolos container's JSON stdout via the Docker API and ships it to Loki.
+#   Prometheus  — scrapes /actuator/prometheus on every service.
+#   Grafana     — datasources + a starter "Dolos platform overview" dashboard, provisioned on boot.
+#
+# Bring up alongside infra + services (build images SEQUENTIALLY first, then up --no-build):
+#   docker compose -f infra.yml -f services.yml -f observability.yml up -d
+# RAM note: this adds five containers (~700 MiB). Bring the stack up WITHOUT ai-copilot/ollama — the
+# 6A trace DoD is ingestion -> scoring -> alert -> case and needs no model.
+#
+# Host ports: Grafana http://localhost:3001 (admin/admin) — 3001 avoids clashing with the console's
+# dev server on :3000; Prometheus :9091; Tempo :3200; Loki :3100.
+
+services:
+  # Trace store. A single-binary Tempo with the OTLP receivers enabled; services export spans to
+  # tempo:4318 (see management.otlp.tracing.endpoint in the config-repo). Query API on :3200.
+  tempo:
+    image: grafana/tempo:2.6.1
+    container_name: dolos-tempo
+    restart: unless-stopped
+    # Run as root so the fresh (root-owned) named volume is writable for the WAL/blocks — local dev only.
+    user: root
+    command: ["-config.file=/etc/tempo/tempo.yaml"]
+    ports:
+      - "3200:3200"     # Tempo query API — Grafana's Tempo datasource points here
+    volumes:
+      - ../observability/tempo/tempo.yaml:/etc/tempo/tempo.yaml:ro
+      - dolos-tempo:/var/tempo
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3200/ready | grep -q ready || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+    networks:
+      - dolos
+
+  # Log store (single-binary / monolithic mode, filesystem backend).
+  loki:
+    image: grafana/loki:3.3.2
+    container_name: dolos-loki
+    restart: unless-stopped
+    user: root
+    command: ["-config.file=/etc/loki/loki-config.yaml"]
+    ports:
+      - "3100:3100"
+    volumes:
+      - ../observability/loki/loki-config.yaml:/etc/loki/loki-config.yaml:ro
+      - dolos-loki:/loki
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3100/ready | grep -q ready || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 15
+      start_period: 20s
+    networks:
+      - dolos
+
+  # Log shipper: discovers containers on the dolos network via the Docker API and forwards their JSON
+  # stdout to Loki, keeping `service`/`level` as (low-cardinality) labels. traceId stays in the log body
+  # and is turned into a Tempo link by Grafana's Loki-datasource derived field (see datasources.yaml).
+  promtail:
+    image: grafana/promtail:3.3.2
+    container_name: dolos-promtail
+    restart: unless-stopped
+    command: ["-config.file=/etc/promtail/promtail-config.yaml"]
+    depends_on:
+      loki:
+        condition: service_started
+    volumes:
+      - ../observability/promtail/promtail-config.yaml:/etc/promtail/promtail-config.yaml:ro
+      # Read-only access to the Docker API for container discovery + log tailing (Docker Desktop pipe).
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - dolos
+
+  # Metrics store: scrapes /actuator/prometheus on every service (dolos-security permits that path).
+  prometheus:
+    image: prom/prometheus:v3.1.0
+    container_name: dolos-prometheus
+    restart: unless-stopped
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.retention.time=6h'   # cap local disk — this is a dev backplane, not long-term
+    ports:
+      - "9091:9090"
+    volumes:
+      - ../observability/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - dolos-prometheus:/prometheus
+    networks:
+      - dolos
+
+  # Dashboards + datasources, all provisioned from files on boot (no click-ops). Anonymous viewing is
+  # on for a frictionless local demo; admin/admin can edit. The Tempo<->Loki<->Prometheus links are set
+  # in the provisioned datasources so a trace jumps to its logs and the service map renders from metrics.
+  grafana:
+    image: grafana/grafana:11.4.0
+    container_name: dolos-grafana
+    restart: unless-stopped
+    depends_on:
+      prometheus:
+        condition: service_started
+      tempo:
+        condition: service_started
+      loki:
+        condition: service_started
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-admin}
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Viewer
+      GF_FEATURE_TOGGLES_ENABLE: traceqlEditor
+    ports:
+      - "3001:3000"
+    volumes:
+      - ../observability/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ../observability/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - dolos-grafana:/var/lib/grafana
+    networks:
+      - dolos
+
+# Attach to the external `dolos` network created by infra.yml.
+networks:
+  dolos:
+    name: dolos
+    external: true
+
+volumes:
+  dolos-tempo:
+    name: dolos-tempo
+  dolos-loki:
+    name: dolos-loki
+  dolos-prometheus:
+    name: dolos-prometheus
+  dolos-grafana:
+    name: dolos-grafana

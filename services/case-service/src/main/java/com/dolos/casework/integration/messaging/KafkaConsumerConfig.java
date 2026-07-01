@@ -76,6 +76,11 @@ public class KafkaConsumerConfig {
         executor.setVirtualThreads(true);
         factory.getContainerProperties().setListenerTaskExecutor(executor);
 
+        // Distributed tracing (Phase 6A): this is a hand-built factory, so Boot's
+        // spring.kafka.listener.observation-enabled property does NOT reach it. Enable observation so the
+        // listener extracts the `traceparent` header and continues the trace all the way to OpenCase.
+        factory.getContainerProperties().setObservationEnabled(true);
+
         return factory;
     }
 }

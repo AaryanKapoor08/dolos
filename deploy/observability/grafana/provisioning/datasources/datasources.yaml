@@ -1,0 +1,45 @@
+# Grafana datasources (Phase 6A), provisioned on boot. The cross-links make the three signals navigable:
+#   - Loki  -> Tempo : a derived field extracts traceId from each JSON log line and links to the trace.
+#   - Tempo -> Loki  : tracesToLogs jumps from a span to that trace's logs (filtered by traceId).
+# Note: `$$` escapes the literal `$` so Grafana does not treat `${__value.raw}` as an env var here.
+apiVersion: 1
+
+datasources:
+  - name: Prometheus
+    type: prometheus
+    uid: prometheus
+    access: proxy
+    url: http://prometheus:9090
+    isDefault: true
+    jsonData:
+      httpMethod: POST
+
+  - name: Tempo
+    type: tempo
+    uid: tempo
+    access: proxy
+    url: http://tempo:3200
+    jsonData:
+      tracesToLogsV2:
+        datasourceUid: loki
+        spanStartTimeShift: '-1h'
+        spanEndTimeShift: '1h'
+        filterByTraceID: true
+      serviceMap:
+        datasourceUid: prometheus
+      nodeGraph:
+        enabled: true
+
+  - name: Loki
+    type: loki
+    uid: loki
+    access: proxy
+    url: http://loki:3100
+    jsonData:
+      derivedFields:
+        - name: TraceID
+          matcherType: regex
+          matcherRegex: '"traceId":"(\w+)"'
+          url: '$${__value.raw}'
+          datasourceUid: tempo
+          urlDisplayLabel: 'View trace'

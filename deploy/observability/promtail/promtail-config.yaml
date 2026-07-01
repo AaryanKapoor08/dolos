@@ -1,0 +1,41 @@
+# Promtail (Phase 6A) — discovers every container on the dolos network via the Docker API and ships its
+# JSON stdout to Loki. The services already log one JSON object per line (LogstashEncoder) including the
+# Micrometer-populated traceId/spanId MDC, so no per-service logging change is needed for correlation.
+server:
+  http_listen_port: 9080
+  grpc_listen_port: 0
+
+positions:
+  filename: /tmp/positions.yaml
+
+clients:
+  - url: http://loki:3100/loki/api/v1/push
+
+scrape_configs:
+  - job_name: dolos-containers
+    docker_sd_configs:
+      - host: unix:///var/run/docker.sock
+        refresh_interval: 10s
+        filters:
+          # Only tail containers attached to the dolos network (skip unrelated local containers).
+          - name: network
+            values: [dolos]
+    relabel_configs:
+      # /dolos-alert-service -> container=dolos-alert-service
+      - source_labels: ['__meta_docker_container_name']
+        regex: '/(.*)'
+        target_label: container
+      # compose service name (e.g. alert-service) for convenient filtering
+      - source_labels: ['__meta_docker_container_label_com_docker_compose_service']
+        target_label: compose_service
+    pipeline_stages:
+      # Parse the JSON line so `service` and `level` become promotable fields...
+      - json:
+          expressions:
+            service: service
+            level: level
+      # ...then promote the low-cardinality ones to Loki labels. traceId is intentionally left in the
+      # log body (high cardinality) — Grafana's Loki derived field turns it into a Tempo link instead.
+      - labels:
+          service:
+          level:

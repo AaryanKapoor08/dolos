@@ -36,7 +36,9 @@ public class IngestionSecurityConfig {
                                         .pathMatchers(
                                                 "/actuator/health",
                                                 "/actuator/health/**",
-                                                "/actuator/info")
+                                                "/actuator/info",
+                                                // Prometheus scrape target (Phase 6A) — open internally.
+                                                "/actuator/prometheus")
                                         .permitAll()
                                         // NiFi's unsecured bulk feed target - must stay open.
                                         .pathMatchers("/ingest/**")

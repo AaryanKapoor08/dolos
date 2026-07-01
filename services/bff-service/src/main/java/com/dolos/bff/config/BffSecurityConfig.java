@@ -36,7 +36,9 @@ public class BffSecurityConfig {
                                                 "/graphiql/**",
                                                 "/actuator/health",
                                                 "/actuator/health/**",
-                                                "/actuator/info")
+                                                "/actuator/info",
+                                                // Prometheus scrape target (Phase 6A) — open internally.
+                                                "/actuator/prometheus")
                                         .permitAll()
                                         .anyExchange()
                                         .authenticated())

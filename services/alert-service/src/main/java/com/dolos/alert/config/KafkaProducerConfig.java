@@ -46,6 +46,11 @@ public class KafkaProducerConfig {
 
     @Bean
     public KafkaTemplate<String, Object> kafkaTemplate(ProducerFactory<String, Object> producerFactory) {
-        return new KafkaTemplate<>(producerFactory);
+        KafkaTemplate<String, Object> template = new KafkaTemplate<>(producerFactory);
+        // Distributed tracing (Phase 6A): hand-built template, so Boot's observation property does not
+        // reach it. Enable observation so publishing AlertRaised injects the `traceparent` header and the
+        // trace continues from the RiskScored consumer span all the way into case-service's OpenCase.
+        template.setObservationEnabled(true);
+        return template;
     }
 }

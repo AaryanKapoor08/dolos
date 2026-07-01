@@ -79,6 +79,11 @@ public class KafkaConsumerConfig {
         executor.setVirtualThreads(true);
         factory.getContainerProperties().setListenerTaskExecutor(executor);
 
+        // Distributed tracing (Phase 6A): this is a hand-built factory, so Boot's
+        // spring.kafka.listener.observation-enabled property does NOT reach it. Enable observation so the
+        // listener extracts the `traceparent` header and continues the trace begun at ingestion.
+        factory.getContainerProperties().setObservationEnabled(true);
+
         return factory;
     }
 
@@ -122,6 +127,9 @@ public class KafkaConsumerConfig {
         SimpleAsyncTaskExecutor executor = new SimpleAsyncTaskExecutor("alert-ring-consumer-");
         executor.setVirtualThreads(true);
         factory.getContainerProperties().setListenerTaskExecutor(executor);
+
+        // Distributed tracing (Phase 6A): join the trace on the RingDetected path too (see above).
+        factory.getContainerProperties().setObservationEnabled(true);
 
         return factory;
     }

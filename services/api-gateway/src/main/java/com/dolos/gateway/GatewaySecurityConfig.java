@@ -40,6 +40,8 @@ public class GatewaySecurityConfig {
                                                 "/actuator/health",
                                                 "/actuator/health/**",
                                                 "/actuator/info",
+                                                // Prometheus scrape target (Phase 6A) — open internally.
+                                                "/actuator/prometheus",
                                                 "/fallback/**",
                                                 "/ingest/**",
                                                 // Live push (5C): the browser can't set Authorization on

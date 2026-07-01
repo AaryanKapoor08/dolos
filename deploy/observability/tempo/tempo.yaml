@@ -1,0 +1,33 @@
+# Tempo (Phase 6A) — single-binary trace store for local dev.
+# Receives spans over OTLP from every Dolos service and serves them to Grafana on :3200.
+stream_over_http_enabled: true
+
+server:
+  http_listen_port: 3200
+  grpc_listen_port: 9096
+
+distributor:
+  receivers:
+    otlp:
+      protocols:
+        # HTTP OTLP — the Micrometer OTLP exporter default (management.otlp.tracing.endpoint = .../v1/traces).
+        http:
+          endpoint: 0.0.0.0:4318
+        # gRPC OTLP — available too, in case a service is switched to the gRPC exporter.
+        grpc:
+          endpoint: 0.0.0.0:4317
+
+ingester:
+  max_block_duration: 5m   # flush blocks quickly so traces show up fast in dev
+
+compactor:
+  compaction:
+    block_retention: 1h    # dev retention — keep the footprint small
+
+storage:
+  trace:
+    backend: local
+    wal:
+      path: /var/tempo/wal
+    local:
+      path: /var/tempo/blocks

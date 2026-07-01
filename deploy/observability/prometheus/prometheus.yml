@@ -1,0 +1,32 @@
+# Prometheus (Phase 6A) — scrapes /actuator/prometheus on every Dolos service by compose DNS name.
+# dolos-security permits that path unauthenticated on the internal network (servlet + reactive chains
+# and every custom chain), so no token is needed.
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    platform: dolos
+
+scrape_configs:
+  - job_name: dolos-services
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets:
+          - 'discovery-server:8761'
+          - 'config-server:8888'
+          - 'api-gateway:8080'
+          - 'transaction-service:8081'
+          - 'ingestion-service:8082'
+          - 'scoring-service:8083'
+          - 'alert-service:8084'
+          - 'graph-service:8085'
+          - 'case-service:8086'
+          - 'ai-copilot-service:8090'
+          - 'notification-service:8091'
+          - 'bff-service:8092'
+    relabel_configs:
+      # Derive a friendly `service` label from the target host (e.g. alert-service:8084 -> alert-service).
+      - source_labels: [__address__]
+        regex: '([^:]+):.*'
+        target_label: service
+        replacement: '$1'

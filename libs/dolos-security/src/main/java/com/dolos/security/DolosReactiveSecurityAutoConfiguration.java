@@ -69,7 +69,10 @@ public class DolosReactiveSecurityAutoConfiguration {
                                         .pathMatchers(
                                                 "/actuator/health",
                                                 "/actuator/health/**",
-                                                "/actuator/info")
+                                                "/actuator/info",
+                                                // Prometheus scrapes metrics unauthenticated over the
+                                                // internal dolos network (Phase 6A); no secrets here.
+                                                "/actuator/prometheus")
                                         .permitAll()
                                         .anyExchange()
                                         .authenticated())

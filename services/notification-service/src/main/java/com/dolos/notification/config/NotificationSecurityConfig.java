@@ -33,7 +33,9 @@ public class NotificationSecurityConfig {
                                                 "/ws/**",
                                                 "/actuator/health",
                                                 "/actuator/health/**",
-                                                "/actuator/info")
+                                                "/actuator/info",
+                                                // Prometheus scrape target (Phase 6A) — open internally.
+                                                "/actuator/prometheus")
                                         .permitAll()
                                         .anyRequest()
                                         .authenticated())

@@ -19,11 +19,23 @@ eureka:
     prefer-ip-address: true
 
 # Expose `refresh` everywhere so a config change pushed here is picked up live via POST /actuator/refresh.
+# `prometheus` + `metrics` are added for the Phase 6A observability backplane (Prometheus scrapes
+# /actuator/prometheus on every service; dolos-security permits that path unauthenticated).
 management:
   endpoints:
     web:
       exposure:
-        include: health,info,refresh
+        include: health,info,refresh,prometheus,metrics
+  # Distributed tracing (Phase 6A). Sample EVERY request in dev so each ingested transaction is one
+  # complete end-to-end trace (ingestion -> scoring -> alert -> case) across the Kafka + HTTP/gRPC hops.
+  # Spans ship over OTLP to Tempo; the endpoint defaults to the compose DNS name and is overridable via
+  # the MANAGEMENT_OTLP_TRACING_ENDPOINT env var (services run outside Docker just fail to export, harmless).
+  tracing:
+    sampling:
+      probability: 1.0
+  otlp:
+    tracing:
+      endpoint: ${MANAGEMENT_OTLP_TRACING_ENDPOINT:http://tempo:4318/v1/traces}
 
 # A refreshable marker proving config came from the config server. Change this value here, POST
 # /actuator/refresh on any client, and the endpoint reports `dolos.platform.config-source` changed.

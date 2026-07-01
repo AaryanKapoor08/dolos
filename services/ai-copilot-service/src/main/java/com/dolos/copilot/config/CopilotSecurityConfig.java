@@ -31,7 +31,9 @@ public class CopilotSecurityConfig {
                                 auth.requestMatchers(
                                                 "/actuator/health",
                                                 "/actuator/health/**",
-                                                "/actuator/info")
+                                                "/actuator/info",
+                                                // Prometheus scrape target (Phase 6A) — open internally.
+                                                "/actuator/prometheus")
                                         .permitAll()
                                         // MCP server (4F): external tool clients connect unauthenticated.
                                         .requestMatchers("/sse", "/mcp/message", "/mcp/**")

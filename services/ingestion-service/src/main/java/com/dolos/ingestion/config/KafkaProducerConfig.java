@@ -49,6 +49,12 @@ public class KafkaProducerConfig {
 
     @Bean
     public KafkaTemplate<String, Object> kafkaTemplate(ProducerFactory<String, Object> producerFactory) {
-        return new KafkaTemplate<>(producerFactory);
+        KafkaTemplate<String, Object> template = new KafkaTemplate<>(producerFactory);
+        // Distributed tracing (Phase 6A): this is a hand-built template, so Boot's
+        // spring.kafka.template.observation-enabled property does NOT reach it. Enable observation here
+        // so each send() opens a producer span and injects the W3C `traceparent` header onto the record —
+        // that header is what lets the downstream consumers (via Kafka Streams) join the same trace.
+        template.setObservationEnabled(true);
+        return template;
     }
 }
