@@ -16,6 +16,12 @@ spring:
           # SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI (see services.yml).
           jwk-set-uri: http://localhost:8087/realms/dolos/protocol/openid-connect/certs
   cloud:
+    # Phase 6G — GraalVM native. Spring Cloud's RefreshScope holds a live Scope instance that Spring's
+    # AOT code generation cannot serialize (UnsupportedTypeValueCodeGenerationException), which breaks the
+    # native build. The gateway imports config as `optional:` and never relied on live @RefreshScope
+    # rebinding, so disabling it costs nothing and keeps the JVM, AOT, and native builds on one code path.
+    refresh:
+      enabled: false
     gateway:
       # CORS for the React Investigator Console (Phase 5E), which runs on its own origin (:3000) and
       # calls the gateway cross-origin. Applied globally so /graphql, /api/**, and the SockJS /ws info
@@ -161,8 +167,9 @@ management:
   endpoints:
     web:
       exposure:
-        # health + info, plus refresh (centralized config) and gateway (inspect the live route table).
-        include: health,info,refresh,gateway
+        # health + info, plus gateway (inspect the live route table). (refresh dropped in 6G — RefreshScope
+        # is disabled for native-image compatibility, so the /actuator/refresh endpoint no longer exists.)
+        include: health,info,gateway
   endpoint:
     health:
       show-details: always

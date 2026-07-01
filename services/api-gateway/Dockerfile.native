@@ -1,0 +1,39 @@
+# syntax=docker/dockerfile:1
+#
+# api-gateway — GraalVM NATIVE image (Phase 6G).
+#
+# Built via the Docker CLI / BuildKit rather than Spring Boot's `bootBuildImage`: Spring Boot 3.4.1's
+# embedded buildpack Docker client (Docker API v1.24) is rejected with HTTP 400 by Docker Engine 29, so
+# we compile the native binary ourselves inside a GraalVM container. This produces the same artifact a
+# buildpack would — Spring Boot AOT + GraalVM `native-image` — and feeds the 6H k3d/Helm deploy.
+#
+# Build context is the REPO ROOT (multi-module Gradle build needs build-logic + the catalog + libs):
+#   docker build -f services/api-gateway/Dockerfile.native -t dolos/api-gateway:native .
+
+# --- Build stage: AOT-process + native-compile the gateway with GraalVM ---
+FROM ghcr.io/graalvm/native-image-community:21 AS build
+WORKDIR /workspace
+# GraalVM's JDK is the only Java 21 install in the image; point Gradle's toolchain at it (no foojay
+# download) and give the native plugin its GraalVM via GRAALVM_HOME so it finds `native-image`.
+ENV GRAALVM_HOME=/usr/lib64/graalvm/graalvm-community-java21
+# The GraalVM OL9 image is minimal — the Gradle wrapper needs `xargs` (findutils).
+RUN microdnf install -y findutils && microdnf clean all
+COPY gradlew settings.gradle.kts build.gradle.kts gradle.properties ./
+COPY gradle gradle
+COPY build-logic build-logic
+COPY libs libs
+COPY services/api-gateway services/api-gateway
+RUN --mount=type=cache,target=/root/.gradle \
+    chmod +x gradlew && \
+    ./gradlew :services:api-gateway:nativeCompile -Pnative --no-daemon \
+        -Dorg.gradle.java.installations.auto-download=false
+
+# --- Runtime: the standalone native binary on a slim glibc base matching the OL9 build ---
+FROM oraclelinux:9-slim
+WORKDIR /app
+RUN microdnf install -y curl && microdnf clean all && \
+    useradd -r -u 1001 dolos
+COPY --from=build /workspace/services/api-gateway/build/native/nativeCompile/api-gateway ./api-gateway
+USER dolos
+EXPOSE 8080
+ENTRYPOINT ["/app/api-gateway"]
