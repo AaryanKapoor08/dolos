@@ -60,3 +60,6 @@ include("tests:slice-e2e")
 // Phase 6E — monorepo-wide architecture rules: one ArchUnit suite enforcing module isolation,
 // layering, boundary, and coding conventions across every service + lib.
 include("tests:architecture")
+// Phase 6F — JMH micro-benchmark harness (Drools rule-session hot path + virtual-thread measurement).
+// Standalone; its benchmarks run via the explicit `:bench:jmh` task, not the default build.
+include("bench")
